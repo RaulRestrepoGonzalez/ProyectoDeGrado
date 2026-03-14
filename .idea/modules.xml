@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="ProjectModuleManager">
+    <modules>
+      <module fileurl="file://$PROJECT_DIR$/musicapp_valledupar.iml" filepath="$PROJECT_DIR$/musicapp_valledupar.iml" />
+      <module fileurl="file://$PROJECT_DIR$/android/musicapp_valledupar_android.iml" filepath="$PROJECT_DIR$/android/musicapp_valledupar_android.iml" />
+    </modules>
+  </component>
+</project>

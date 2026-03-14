@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<network-security-config>
+    <!-- Permite tráfico HTTP para dominios o IPs de desarrollo locales. Para producción, debes usar HTTPS. -->
+    <!-- Para Android (Emuladores, dispositivos en la misma red y localhost real) -->
+    <domain-config cleartextTrafficPermitted="true">
+        <domain includeSubdomains="true">10.0.2.2</domain>
+        <domain includeSubdomains="true">localhost</domain>
+        <!-- Agregar aquí IP local (Ej. 192.168.0.x) si lo pruebas en tu smartphone físico conectado al WiFi -->
+    </domain-config>
+
+    <!-- La política base para producción será siempre HTTPS estricto -->
+    <base-config cleartextTrafficPermitted="false" />
+</network-security-config>

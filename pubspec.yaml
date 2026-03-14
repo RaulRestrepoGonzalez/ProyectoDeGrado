@@ -1,0 +1,104 @@
+name: musicapp_valledupar
+description: Aplicación móvil para facilitar la comunicación entre músicos y agrupaciones musicales en Valledupar.
+publish_to: none
+version: 1.0.0+1
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Flutter 3.41.4  →  Dart 3.11.x
+# Versiones verificadas en pub.dev a marzo 2026
+# ─────────────────────────────────────────────────────────────────────────────
+environment:
+  sdk: ">=3.11.0 <4.0.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # ── State Management ───────────────────────────────────────────────────────
+  flutter_bloc: ^9.1.1       # última estable (bloclibrary.dev)
+  equatable: ^2.0.7
+
+  # ── Navegación ─────────────────────────────────────────────────────────────
+  go_router: ^17.1.0         # última estable (flutter team)
+
+  # ── HTTP & API ─────────────────────────────────────────────────────────────
+  dio: ^5.7.0
+  retrofit: ^4.4.1
+
+  # ── Inyección de dependencias ──────────────────────────────────────────────
+  get_it: ^8.0.3
+  injectable: ^2.5.0
+
+  # ── Almacenamiento local ───────────────────────────────────────────────────
+  shared_preferences: ^2.3.5
+  flutter_secure_storage: ^9.2.4
+  hive: ^2.2.3
+  hive_flutter: ^1.1.0
+
+  # ── Autenticación JWT ──────────────────────────────────────────────────────
+  jwt_decoder: ^2.0.1
+
+  # ── Multimedia ─────────────────────────────────────────────────────────────
+  image_picker: ^1.2.1
+  video_player: ^2.9.2
+  cached_network_image: ^3.4.1
+  flutter_image_compress: ^2.3.0
+  file_picker: ^8.1.7
+
+  # ── Chat / Tiempo real ─────────────────────────────────────────────────────
+  socket_io_client: ^2.0.3+1
+
+  # ── UI Components ──────────────────────────────────────────────────────────
+  flutter_svg: ^2.0.17
+  google_fonts: ^6.2.1
+  shimmer: ^3.0.0
+  flutter_animate: ^4.5.2
+  lottie: ^3.3.1
+  badges: ^3.1.2
+  readmore: ^3.0.0
+  # pull_to_refresh reemplazado por el soporte nativo de RefreshIndicator en Flutter 3.x
+  infinite_scroll_pagination: ^4.1.0
+
+  # ── Formularios y validación ───────────────────────────────────────────────
+  reactive_forms: ^17.0.1
+  form_validator: ^2.1.1
+
+  # ── Permisos ───────────────────────────────────────────────────────────────
+  permission_handler: ^11.3.1
+
+  # ── Localización / Ubicación ───────────────────────────────────────────────
+  geolocator: ^13.0.4
+  geocoding: ^3.0.0
+
+  # ── Utilidades ─────────────────────────────────────────────────────────────
+  intl: ^0.20.2
+  uuid: ^4.5.1
+  logger: ^2.5.0
+  connectivity_plus: ^6.1.4
+  url_launcher: ^6.3.2
+  share_plus: ^10.1.4
+  path_provider: ^2.1.5
+  flutter_dotenv: ^5.2.1
+  fpdart: ^1.1.1             # reemplazo moderno de dartz, compatible con Dart 3.x
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/images/
+    - assets/icons/
+    - .env
+  fonts:
+    - family: Poppins
+      fonts:
+        - asset: assets/fonts/Poppins-Regular.ttf
+        - asset: assets/fonts/Poppins-Medium.ttf
+          weight: 500
+        - asset: assets/fonts/Poppins-SemiBold.ttf
+          weight: 600
+        - asset: assets/fonts/Poppins-Bold.ttf
+          weight: 700
