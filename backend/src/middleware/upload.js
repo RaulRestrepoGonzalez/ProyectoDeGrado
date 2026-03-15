@@ -13,14 +13,17 @@ const storage = new CloudinaryStorage({
   cloudinary: cloudinary,
   params: {
     folder: 'musicapp_valledupar',
-    allowed_formats: ['jpg', 'jpeg', 'png', 'mp4', 'mov'],
-    resource_type: 'auto', // Permite subir tanto imágenes como videos
+    allowed_formats: ['jpg', 'jpeg', 'png', 'mp4', 'mov', 'mp3', 'wav', 'aac', 'm4a'],
+    resource_type: 'auto', // Permite subir imágenes, videos y audios
   },
 });
 
 const upload = multer({ 
   storage: storage,
-  limits: { fileSize: 10 * 1024 * 1024 } // Límite de 10 MB
+  limits: { 
+    fileSize: 15 * 1024 * 1024, // Límite de 15 MB para permitir audios más largos
+    files: 5 // Máximo 5 archivos
+  }
 });
 
 module.exports = upload;

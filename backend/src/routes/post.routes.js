@@ -34,6 +34,10 @@ router.post(
     body('precio')
       .optional()
       .isNumeric(),
+    body('duracionAudio')
+      .optional()
+      .isInt({ min: 1, max: 60 })
+      .withMessage('La duración del audio debe estar entre 1 y 60 segundos.'),
   ],
   validateRequest,
   postController.crearPublicacion

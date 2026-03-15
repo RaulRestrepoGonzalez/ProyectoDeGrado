@@ -44,6 +44,10 @@ dependencies:
   cached_network_image: ^3.4.1
   flutter_image_compress: ^2.3.0
   file_picker: ^8.1.7
+  audioplayers: ^6.1.0
+  record: ^5.1.2
+  permission_handler: ^11.4.0
+  path_provider: ^2.1.5
 
   # ── Chat / Tiempo real ─────────────────────────────────────────────────────
   socket_io_client: ^2.0.3+1

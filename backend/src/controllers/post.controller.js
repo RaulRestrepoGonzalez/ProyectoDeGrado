@@ -31,11 +31,49 @@ exports.crearPublicacion = async (req, res, next) => {
     }
     // ─────────────────────────────────────────────────────────────────────────
 
-    // Si multer subió archivos, req.files tendrá la info de Cloudinary (path o secure_url)
+    // ── Procesar archivos subidos ───────────────────────────────────────────────
     const evidencias = [];
+    let tipoEvidencia = 'IMAGEN'; // Por defecto
+    let duracionAudio = null;
+    
     if (req.files && req.files.length > 0) {
       req.files.forEach(file => {
         evidencias.push(file.path); // Cloudinary URL
+        
+        // Detectar tipo de archivo por extensión
+        const fileExtension = file.path.toLowerCase().split('.').pop();
+        if (['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(fileExtension)) {
+          // Es imagen - mantener tipo actual
+        } else if (['mp4', 'mov', 'avi', 'mkv', 'webm'].includes(fileExtension)) {
+          if (tipoEvidencia === 'IMAGEN') tipoEvidencia = 'VIDEO';
+        } else if (['mp3', 'wav', 'aac', 'm4a', 'ogg', 'flac'].includes(fileExtension)) {
+          tipoEvidencia = 'AUDIO';
+          
+          // Si es audio, verificar duración (Cloudinary proporciona metadata)
+          if (file.duration) {
+            duracionAudio = Math.min(file.duration, 60); // Máximo 60 segundos
+          }
+        }
+        
+        // Si hay múltiples tipos, es MIXTO
+        if (evidencias.length > 1) {
+          const hasImage = req.files.some(f => {
+            const ext = f.path.toLowerCase().split('.').pop();
+            return ['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(ext);
+          });
+          const hasVideo = req.files.some(f => {
+            const ext = f.path.toLowerCase().split('.').pop();
+            return ['mp4', 'mov', 'avi', 'mkv', 'webm'].includes(ext);
+          });
+          const hasAudio = req.files.some(f => {
+            const ext = f.path.toLowerCase().split('.').pop();
+            return ['mp3', 'wav', 'aac', 'm4a', 'ogg', 'flac'].includes(ext);
+          });
+          
+          if ((hasImage && hasVideo) || (hasImage && hasAudio) || (hasVideo && hasAudio)) {
+            tipoEvidencia = 'MIXTO';
+          }
+        }
       });
     }
 
@@ -46,6 +84,8 @@ exports.crearPublicacion = async (req, res, next) => {
       vacantes: vacantes ? Number(vacantes) : null,
       precio: precio ? Number(precio) : null,
       evidencias,
+      tipoEvidencia,
+      duracionAudio,
     });
 
     const publicacionPopulada = await Publicacion.findById(nuevaPublicacion._id).populate(

@@ -1,6 +1,5 @@
 @echo off
-title MusicApp Valledupar - Loader
-chcp 65001 >nul
+title MusicApp Valledupar Loader
 
 echo ===================================================
 echo   Iniciando MusicApp Valledupar (Backend + Frontend)
@@ -8,18 +7,17 @@ echo ===================================================
 echo.
 
 set BACKEND_PORT=3000
-set SOCKET_PORT=4000
 set PROJECT_ROOT=%~dp0
 set BACKEND_DIR=%PROJECT_ROOT%backend
 set ENV_FILE=%PROJECT_ROOT%.env
 set BACKEND_ENV_FILE=%BACKEND_DIR%\.env
+set MONGO_PATH=C:\Program Files\MongoDB\Server\8.2\bin
 
 echo [Paso 1/6] Verificando dependencias...
 
 where node >nul 2>&1
 if %errorlevel% neq 0 (
-    echo ERROR: Node.js no esta instalado o no esta en el PATH
-    echo Por favor, instala Node.js desde https://nodejs.org/
+    echo ERROR: Node.js no esta instalado
     pause
     exit /b 1
 ) else (
@@ -28,8 +26,7 @@ if %errorlevel% neq 0 (
 
 where flutter >nul 2>&1
 if %errorlevel% neq 0 (
-    echo ERROR: Flutter no esta instalado o no esta en el PATH
-    echo Por favor, instala Flutter desde https://flutter.dev/docs/get-started/install
+    echo ERROR: Flutter no esta instalado
     pause
     exit /b 1
 ) else (
@@ -37,162 +34,189 @@ if %errorlevel% neq 0 (
 )
 
 echo.
-echo [Paso 2/6] Detectando configuracion de red...
+echo [Paso 2/6] Iniciando MongoDB...
 
-:: Obtener la IP local automáticamente
-for /f "tokens=2 delims=:" %%i in ('ipconfig ^| findstr /i "IPv4"') do (
-    for /f "tokens=1" %%j in ("%%i") do set LOCAL_IP=%%j
-)
-
-if "%LOCAL_IP%"=="" (
-    echo No se pudo detectar la IP local, usando localhost
-    set LOCAL_IP=localhost
+if exist "%MONGO_PATH%\mongod.exe" (
+    echo OK: MongoDB encontrado
 ) else (
-    echo IP local detectada: %LOCAL_IP%
-)
-
-echo.
-echo [Paso 3/6] Configurando archivos de entorno...
-
-:: Crear archivo .env para el backend
-if not exist "%BACKEND_ENV_FILE%" (
-    echo Creando archivo .env para el backend...
-    (
-        echo # Backend - MusicApp Valledupar
-        echo PORT=%BACKEND_PORT%
-        echo MONGODB_URI=mongodb://localhost:27017/musicapp_valledupar
-        echo JWT_SECRET=your_jwt_secret_key_change_this_in_production_%RANDOM%
-        echo CLIENT_ORIGIN=http://localhost:%BACKEND_PORT%
-        echo.
-        echo # Socket.IO
-        echo SOCKET_PORT=%SOCKET_PORT%
-        echo SOCKET_PATH=/socket.io
-        echo.
-        echo # Cloudinary - configura con tus credenciales
-        echo CLOUDINARY_CLOUD_NAME=
-        echo CLOUDINARY_API_KEY=
-        echo CLOUDINARY_API_SECRET=
-    ) > "%BACKEND_ENV_FILE%"
-    echo OK: Archivo .env del backend creado
-) else (
-    echo OK: Archivo .env del backend ya existe
-)
-
-:: Crear archivo .env para Flutter con configuración completa
-if not exist "%ENV_FILE%" (
-    echo Creando archivo .env para Flutter...
-    (
-        echo # Variables de entorno para la app Flutter
-        echo # Generado automaticamente - %date% %time%
-        echo.
-        echo # URLs del backend - configuradas automaticamente
-        echo BASE_URL=http://%LOCAL_IP%:%BACKEND_PORT%/api
-        echo SOCKET_URL=http://%LOCAL_IP%:%SOCKET_PORT%
-        echo.
-        echo # IPs adicionales para dispositivos moviles y emuladores
-        echo BASE_HOSTS=%LOCAL_IP%,localhost,10.0.2.2,10.0.3.2
-        echo.
-        echo # Configuracion de red
-        echo NETWORK_TIMEOUT=5000
-        echo RETRY_ATTEMPTS=3
-        echo.
-        echo # Ejemplo para Firebase ^(opcional^)
-        echo # FIREBASE_API_KEY=...
-        echo # FIREBASE_APP_ID=...
-        echo # FIREBASE_MESSAGING_SENDER_ID=...
-        echo # FIREBASE_PROJECT_ID=...
-    ) > "%ENV_FILE%"
-    echo OK: Archivo .env de Flutter creado
-) else (
-    echo OK: Archivo .env de Flutter ya existe
-)
-
-echo.
-echo [Paso 4/6] Verificando puertos...
-
-netstat -an | findstr ":%BACKEND_PORT%" >nul 2>&1
-if %errorlevel% equ 0 (
-    echo ADVERTENCIA: Puerto %BACKEND_PORT% esta en uso
-    set BACKEND_PORT=3001
-    echo Usando puerto %BACKEND_PORT% para el backend
-    :: Actualizar el archivo .env con el nuevo puerto
-    powershell -Command "(Get-Content '%ENV_FILE%') -replace ':%BACKEND_PORT%:3000/api', ':%BACKEND_PORT%:%BACKEND_PORT%/api' | Set-Content '%ENV_FILE%'"
-) else (
-    echo Puerto %BACKEND_PORT% disponible
-)
-
-echo Puerto %SOCKET_PORT% disponible
-
-echo.
-echo [Paso 5/6] Instalando dependencias del backend...
-
-cd /d "%BACKEND_DIR%"
-if not exist "node_modules" (
-    echo Instalando dependencias de Node.js...
-    call npm install
-    if %errorlevel% neq 0 (
-        echo ERROR: Error al instalar dependencias del backend
-        pause
-        exit /b 1
-    )
-    echo OK: Dependencias del backend instaladas
-) else (
-    echo OK: Dependencias del backend ya estan instaladas
-)
-
-echo.
-echo [Paso 6/6] Iniciando aplicacion...
-
-echo Iniciando servidor backend en puerto %BACKEND_PORT%...
-echo El backend estara disponible en: http://%LOCAL_IP%:%BACKEND_PORT%
-start "Backend - MusicApp Valledupar" cmd /k "cd /d \"%BACKEND_DIR%\" && echo Servidor backend iniciando... && npm run dev"
-
-echo Esperando que el backend se inicie...
-timeout /t 8 /nobreak >nul
-
-:: Verificar que el backend esté corriendo
-netstat -an | findstr ":%BACKEND_PORT%" >nul 2>&1
-if %errorlevel% equ 0 (
-    echo OK: Backend corriendo en puerto %BACKEND_PORT%
-) else (
-    echo ADVERTENCIA: No se puede verificar que el backend este corriendo
-    timeout /t 2 /nobreak >nul
-)
-
-cd /d "%PROJECT_ROOT%"
-
-echo Obteniendo dependencias de Flutter...
-call flutter pub get
-if %errorlevel% neq 0 (
-    echo ERROR: Error al obtener dependencias de Flutter
+    echo ERROR: MongoDB no encontrado
     pause
     exit /b 1
 )
 
-echo Verificando dispositivos disponibles...
+echo Verificando si MongoDB ya esta corriendo...
+netstat -an | findstr ":27017" >nul 2>&1
+if %errorlevel% equ 0 (
+    echo OK: MongoDB ya esta corriendo
+) else (
+    echo MongoDB no esta corriendo, iniciando manualmente...
+    
+    echo Intentando iniciar servicio MongoDB...
+    sc query MongoDB >nul 2>&1
+    if %errorlevel% equ 0 (
+        net start MongoDB >nul 2>&1
+        if %errorlevel% equ 0 (
+            echo OK: MongoDB iniciado como servicio
+        ) else (
+            echo Iniciando MongoDB manualmente...
+            if not exist "C:\data\db" mkdir "C:\data\db" 2>nul
+            start "MongoDB Server" cmd /k "title MongoDB Server && echo MongoDB iniciado manualmente && \"%MONGO_PATH%\mongod.exe\" --dbpath \"C:\data\db\""
+            timeout /t 8
+        )
+    ) else (
+        echo Servicio no encontrado, iniciando manualmente...
+        if not exist "C:\data\db" mkdir "C:\data\db" 2>nul
+        start "MongoDB Server" cmd /k "title MongoDB Server && echo MongoDB iniciado manualmente && \"%MONGO_PATH%\mongod.exe\" --dbpath \"C:\data\db\""
+        timeout /t 8
+    )
+)
+
+echo Esperando a que MongoDB este completamente listo...
+timeout /t 10
+
+echo Verificando que MongoDB este escuchando...
+netstat -an | findstr ":27017" >nul 2>&1
+if %errorlevel% equ 0 (
+    echo OK: MongoDB esta escuchando en puerto 27017
+) else (
+    echo ADVERTENCIA: MongoDB podria no estar listo, pero continuando...
+)
+
+echo.
+echo [Paso 3/6] Detectando IP local...
+
+set LOCAL_IP=localhost
+for /f "tokens=2 delims=:" %%i in ('ipconfig ^| findstr "IPv4"') do (
+    for /f "tokens=1" %%j in ("%%i") do set LOCAL_IP=%%j
+)
+
+echo IP local: %LOCAL_IP%
+
+echo.
+echo [Paso 4/6] Configurando archivos .env...
+
+if exist "%BACKEND_ENV_FILE%" del "%BACKEND_ENV_FILE%"
+(
+    echo PORT=%BACKEND_PORT%
+    echo NODE_ENV=development
+    echo MONGODB_URI=mongodb://localhost:27017/musicapp_valledupar
+    echo JWT_SECRET=musicapp_secret_%RANDOM%_%TIME:~0,8%
+    echo CLIENT_ORIGIN=*
+    echo SOCKET_PORT=4000
+    echo SOCKET_PATH=/socket.io
+) > "%BACKEND_ENV_FILE%"
+
+if exist "%ENV_FILE%" del "%ENV_FILE%"
+(
+    echo BASE_URL=http://%LOCAL_IP%:%BACKEND_PORT%/api
+    echo SOCKET_URL=http://%LOCAL_IP%:4000
+    echo BASE_HOSTS=%LOCAL_IP%,localhost,10.0.2.2,10.0.3.2,127.0.0.1
+    echo NETWORK_TIMEOUT=15000
+    echo RETRY_ATTEMPTS=8
+) > "%ENV_FILE%"
+
+echo OK: Archivos .env configurados
+
+echo.
+echo [Paso 5/6] Iniciando backend...
+
+cd /d "%BACKEND_DIR%"
+
+if not exist "node_modules" (
+    echo Instalando dependencias del backend...
+    call npm install
+    if %errorlevel% neq 0 (
+        echo ERROR: Error al instalar dependencias
+        pause
+        exit /b 1
+    )
+)
+
+echo Verificando puerto %BACKEND_PORT%...
+netstat -an | findstr ":%BACKEND_PORT%" >nul 2>&1
+if %errorlevel% equ 0 (
+    echo Puerto %BACKEND_PORT% esta en uso, liberando...
+    for /f "tokens=5" %%i in ('netstat -ano ^| findstr ":%BACKEND_PORT%"') do (
+        taskkill /F /PID %%i >nul 2>&1
+    )
+    timeout /t 3
+)
+
+echo Iniciando servidor backend...
+start "Backend - MusicApp" cmd /k "title Backend - MusicApp && echo ======================================== && echo BACKEND - MUSICAPP VALLEDUPAR && echo ======================================== && npm run dev"
+
+echo Esperando que el backend inicie completamente...
+timeout /t 15
+
+echo Verificando que el backend este corriendo...
+netstat -an | findstr ":%BACKEND_PORT%" >nul 2>&1
+if %errorlevel% equ 0 (
+    echo OK: Backend corriendo en puerto %BACKEND_PORT%
+    
+    echo Probando conexion con backend...
+    powershell -Command "try { $response = Invoke-WebRequest -Uri 'http://localhost:%BACKEND_PORT%/health' -TimeoutSec 10 -UseBasicParsing; Write-Host 'OK: Backend responde correctamente' } catch { Write-Host 'ADVERTENCIA: Backend no responde, esperando mas...' }"
+    timeout /t 5
+    
+    echo Verificando nuevamente...
+    powershell -Command "try { $response = Invoke-WebRequest -Uri 'http://localhost:%BACKEND_PORT%/health' -TimeoutSec 5 -UseBasicParsing; Write-Host 'OK: Backend funcionando correctamente' } catch { Write-Host 'INFO: Backend iniciado pero health check no disponible - continuando' }"
+) else (
+    echo ADVERTENCIA: Backend no se pudo verificar
+    echo Esto puede deberse a:
+    echo - MongoDB no esta completamente listo
+    echo - Errores en el codigo del backend
+    echo - Problemas de red
+    echo.
+    echo Verifica la ventana del backend para ver errores especificos
+    echo Continuando con Flutter de todos modos...
+)
+
+echo.
+echo [Paso 6/6] Preparando e iniciando Flutter...
+
+cd /d "%PROJECT_ROOT%"
+
+echo Limpiando e instalando dependencias de Flutter...
+call flutter clean
+call flutter pub get
+
+echo Verificando dispositivos...
 call flutter devices
 
 echo.
 echo ===================================================
-echo   CONFIGURACION DE RED
+echo   CONFIGURACION COMPLETADA - MUSICA APP LISTA
 echo ===================================================
 echo.
-echo Backend URL: http://%LOCAL_IP%:%BACKEND_PORT%/api
-echo Socket URL:  http://%LOCAL_IP%:%SOCKET_PORT%
+echo Backend API:     http://%LOCAL_IP%:%BACKEND_PORT%/api
+echo Health Check:    http://%LOCAL_IP%:%BACKEND_PORT%/health
+echo Socket.IO:       http://%LOCAL_IP%:4000
+echo MongoDB:         mongodb://localhost:27017/musicapp_valledupar
 echo.
-echo Para dispositivos moviles en la misma red:
-echo - Usa la IP: %LOCAL_IP%:%BACKEND_PORT%
-echo - Asegurate de que el firewall permita conexiones
+echo Para dispositivos moviles en esta red:
+echo - Usa: http://%LOCAL_IP%:%BACKEND_PORT%/api
 echo.
-echo Para emuladores Android: http://10.0.2.2:%BACKEND_PORT%/api
-echo Para emuladores iOS: http://localhost:%BACKEND_PORT%/api
+echo Para emuladores:
+echo - Android: http://10.0.2.2:%BACKEND_PORT%/api
+echo - iOS: http://localhost:%BACKEND_PORT%/api
+echo.
+echo Servicios corriendo en ventanas separadas:
+echo - MongoDB Server
+echo - Backend - MusicApp
 echo.
 echo ===================================================
 echo.
 
 echo Iniciando aplicacion Flutter...
-echo Puedes usar 'r' para hot-reload, 'R' para hot-restart
-echo Presiona Ctrl+C para detener la aplicacion
+echo.
+echo COMANDOS UTILES EN FLUTTER:
+echo   'r' - Hot reload
+echo   'R' - Hot restart  
+echo   'p' - Debug paint
+echo   'o' - Platform switch
+echo   'q' - Quit
+echo.
+echo Presiona Ctrl+C para detener la aplicacion Flutter
+echo Los servicios backend y MongoDB seguiran corriendo
 echo.
 
 call flutter run
@@ -201,4 +225,15 @@ echo.
 echo ===================================================
 echo   Aplicacion MusicApp Valledupar detenida
 echo ===================================================
+echo.
+echo La aplicacion Flutter se ha detenido
+echo Los servicios backend y MongoDB siguen corriendo
+echo.
+echo Para detener todos los servicios:
+echo 1. Cierra la ventana "Backend - MusicApp"
+echo 2. Cierra la ventana "MongoDB Server"
+echo.
+echo O ejecuta: taskkill /F /IM node.exe /IM mongod.exe
+echo.
+
 pause

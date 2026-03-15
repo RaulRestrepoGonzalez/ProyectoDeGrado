@@ -42,46 +42,115 @@ const tryConnect = async (uri, opts) => {
 
 const connectDB = async () => {
   const candidates = buildCandidates();
-  const opts = { serverSelectionTimeoutMS: 5000, connectTimeoutMS: 5000, socketTimeoutMS: 45000 };
+  const opts = { 
+    serverSelectionTimeoutMS: 10000, 
+    connectTimeoutMS: 10000, 
+    socketTimeoutMS: 60000,
+    maxPoolSize: 10,
+    minPoolSize: 1,
+    maxIdleTimeMS: 30000,
+    waitQueueTimeoutMS: 10000,
+    retryWrites: true,
+    w: 'majority',
+    readPreference: 'primaryPreferred'
+  };
+
+  console.log(`🔍 Intentando conectar a MongoDB con ${candidates.length} candidatos...`);
 
   for (let i = 0; i < candidates.length; i++) {
     const uri = candidates[i];
     let attempt = 0;
-    const maxAttempts = 4;
+    const maxAttempts = 6; // Aumentado a 6 intentos
+    
     while (attempt < maxAttempts) {
       try {
-        console.log(`Intentando conectar a MongoDB (candidato ${i + 1}/${candidates.length}, intento ${attempt + 1}/${maxAttempts}): ${uri}`);
+        console.log(`📡 Intentando conectar a MongoDB (candidato ${i + 1}/${candidates.length}, intento ${attempt + 1}/${maxAttempts}): ${uri}`);
+        
+        // Limpiar conexión anterior si existe
+        if (mongoose.connection.readyState !== 0) {
+          await mongoose.connection.close();
+        }
+        
         const connection = await tryConnect(uri, opts);
         const dbName = connection.connection.db.databaseName || DEFAULT_DB_NAME;
 
+        // Verificar y crear colecciones necesarias
         try {
-          await connection.connection.db.createCollection('usuarios');
-          console.log(`Base de datos '${dbName}' inicializada correctamente (si no existía).`);
-        } catch (e) {
-          if (e && e.code === 48) {
-            // colección ya existe
-          } else if (e) {
-            console.warn(`Aviso durante verificación de DB '${dbName}':`, e.message || e);
+          const db = connection.connection.db;
+          
+          // Lista de colecciones necesarias
+          const collections = ['usuarios', 'posts', 'bandas', 'eventos', 'mensajes'];
+          
+          for (const collectionName of collections) {
+            try {
+              await db.createCollection(collectionName);
+              console.log(`✅ Colección '${collectionName}' creada/verificada`);
+            } catch (e) {
+              if (e && e.code === 48) {
+                console.log(`✅ Colección '${collectionName}' ya existe`);
+              } else if (e) {
+                console.warn(`⚠️  Aviso con colección '${collectionName}':`, e.message || e);
+              }
+            }
           }
+          
+          console.log(`🗄️  Base de datos '${dbName}' inicializada correctamente`);
+        } catch (e) {
+          console.warn(`⚠️  Aviso durante verificación de DB '${dbName}':`, e.message || e);
         }
 
-        console.log(`MongoDB conectada exitosamente: ${connection.connection.host} (DB: ${dbName})`);
+        console.log(`🎉 MongoDB conectada exitosamente: ${connection.connection.host} (DB: ${dbName})`);
+        
+        // Configurar manejo de errores post-conexión
         mongoose.connection.on('error', (err) => {
-          console.error('Error post-conexión MongoDB:', err);
+          console.error('❌ Error post-conexión MongoDB:', err);
+          // No salir del proceso, permitir reconexión automática
         });
+        
+        mongoose.connection.on('disconnected', () => {
+          console.warn('⚠️  MongoDB desconectado, intentando reconexión...');
+        });
+        
+        mongoose.connection.on('reconnected', () => {
+          console.log('🔄 MongoDB reconectado exitosamente');
+        });
+        
         return; // conectado con éxito
       } catch (err) {
-        console.warn(`No se pudo conectar a ${uri} (intento ${attempt + 1}): ${err.message}`);
+        console.warn(`❌ No se pudo conectar a ${uri} (intento ${attempt + 1}): ${err.message}`);
         attempt += 1;
-        // backoff exponencial con jitter
-        const base = 500; // ms
-        const delay = Math.min(8000, base * Math.pow(2, attempt)) + Math.floor(Math.random() * 200);
+        
+        // Si es el último intento de este candidato, pasar al siguiente
+        if (attempt >= maxAttempts) {
+          console.log(`🚫 Agotados los intentos para ${uri}, probando siguiente candidato...`);
+          break;
+        }
+        
+        // Backoff exponencial con jitter
+        const base = 1000; // Aumentado a 1 segundo base
+        const delay = Math.min(15000, base * Math.pow(2, attempt)) + Math.floor(Math.random() * 500);
+        console.log(`⏳ Esperando ${delay}ms antes del próximo intento...`);
         await new Promise(res => setTimeout(res, delay));
       }
     }
   }
 
-  console.error('Fallaron todas las tentativas de conexión a MongoDB. Revise MONGODB_URI / MONGO_HOST(S) y la accesibilidad de red.');
+  // Si llegamos aquí, todos los candidatos fallaron
+  console.error('🔥 Fallaron todas las tentativas de conexión a MongoDB.');
+  console.error('📋 Revise:');
+  console.error('   • MONGODB_URI / MONGO_HOST(S) en el archivo .env');
+  console.error('   • Que MongoDB esté instalado y corriendo');
+  console.error('   • Que el firewall permita conexiones al puerto 27017');
+  console.error('   • Que el servicio MongoDB esté iniciado');
+  
+  // En modo desarrollo, continuar sin MongoDB
+  if (process.env.NODE_ENV === 'development') {
+    console.warn('⚠️  Modo desarrollo: Continuando sin MongoDB (algunas funciones no estarán disponibles)');
+    console.warn('⚠️  Para funcionalidad completa, inicie MongoDB y reinicie el servidor');
+    return;
+  }
+  
+  // En producción, salir
   process.exit(1);
 };
 

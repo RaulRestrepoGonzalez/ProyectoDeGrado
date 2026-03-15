@@ -27,9 +27,19 @@ const publicacionSchema = new mongoose.Schema(
     },
     evidencias: [
       {
-        type: String, // URLs of the photos/videos from Cloudinary
+        type: String, // URLs of photos/videos/audio from Cloudinary
       },
     ],
+    tipoEvidencia: {
+      type: String,
+      enum: ['IMAGEN', 'VIDEO', 'AUDIO', 'MIXTO'],
+      default: 'IMAGEN',
+    },
+    duracionAudio: {
+      type: Number, // Duración en segundos para audios
+      default: null,
+      max: 60, // Máximo 60 segundos
+    },
     likes: [
       {
         type: mongoose.Schema.Types.ObjectId,

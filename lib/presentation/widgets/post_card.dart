@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../data/repositories/post_repository.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'audio_wave_painter.dart';
 
 class PostCard extends StatefulWidget {
   final Map<String, dynamic> post;
@@ -97,6 +98,8 @@ class _PostCardState extends State<PostCard> {
     final int? vacantes = widget.post['vacantes'];
     final num? precio = widget.post['precio'];
     final List<dynamic> evidencias = widget.post['evidencias'] ?? [];
+    final String tipoEvidencia = widget.post['tipoEvidencia'] ?? 'IMAGEN';
+    final int? duracionAudio = widget.post['duracionAudio'];
 
     final createdAt = DateTime.tryParse(widget.post['createdAt'] ?? '');
     final String timeStr = createdAt != null 
@@ -132,19 +135,68 @@ class _PostCardState extends State<PostCard> {
       }
     }
 
-    final hasImage = evidencias.isNotEmpty;
+    final hasImage = evidencias.isNotEmpty && tipoEvidencia != 'AUDIO';
 
     return Container(
       color: Colors.black, // Dark background as fallback
       child: Stack(
         fit: StackFit.expand,
         children: [
-          // 1. Background Image/Video (we use the first image for now)
+          // 1. Background Media (Image, Video, or Audio placeholder)
           if (hasImage)
             Image.network(
               evidencias.first,
               fit: BoxFit.cover,
               errorBuilder: (_, __, ___) => Container(color: Colors.grey.shade900),
+            )
+          else if (tipoEvidencia == 'AUDIO')
+            Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [Colors.purple.shade900, Colors.black87],
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                ),
+              ),
+              child: Stack(
+                children: [
+                  // Ondas de audio animadas
+                  Positioned.fill(
+                    child: CustomPaint(
+                      painter: AudioWavePainter(),
+                    ),
+                  ),
+                  // Icono de audio
+                  const Center(
+                    child: Icon(Icons.audiotrack, size: 60, color: Colors.white70),
+                  ),
+                  // Duración del audio
+                  if (duracionAudio != null)
+                    Positioned(
+                      bottom: 20,
+                      left: 0,
+                      right: 0,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: Colors.black.withOpacity(0.7),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Icon(Icons.timer, color: Colors.white, size: 16),
+                            const SizedBox(width: 4),
+                            Text(
+                              '${duracionAudio}s',
+                              style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                ],
+              ),
             )
           else
             Container(
@@ -153,7 +205,7 @@ class _PostCardState extends State<PostCard> {
                   colors: [Colors.grey.shade900, Colors.black87],
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
-                )
+                ),
               ),
               child: const Center(
                 child: Icon(Icons.music_note, size: 80, color: Colors.white12),

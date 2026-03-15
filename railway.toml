@@ -1,0 +1,32 @@
+# MusicApp Valledupar - Railway
+
+[build]
+builder = "nixpacks"
+
+[deploy]
+healthcheckPath = "/health"
+healthcheckTimeout = 100
+restartPolicyType = "on_failure"
+restartPolicyMaxRetries = 10
+
+[[services]]
+name = "musicapp-backend"
+
+[services.variables]
+NODE_ENV = "production"
+PORT = "3000"
+CLIENT_ORIGIN = "*"
+
+[services.health_checks]
+[services.health_checks.http]
+path = "/health"
+port = 3000
+
+[[services.ports]]
+port = 3000
+handlers = ["http"]
+
+[sources]
+[sources.mount]
+source = "/backend"
+destination = "/app"
