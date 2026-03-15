@@ -1,10 +1,8 @@
-import 'dart:async';
 import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:record/record.dart';
 import 'package:audioplayers/audioplayers.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:permission_handler/permission_handler.dart';
-import 'package:path_provider/path_provider.dart';
 
 class AudioRecorderWidget extends StatefulWidget {
   final Function(File audioFile) onAudioRecorded;
@@ -21,46 +19,32 @@ class AudioRecorderWidget extends StatefulWidget {
 }
 
 class _AudioRecorderWidgetState extends State<AudioRecorderWidget> {
-  late AudioRecorder _audioRecorder;
   late AudioPlayer _audioPlayer;
-  bool _isRecording = false;
   bool _isPlaying = false;
-  String? _recordingPath;
-  int _recordingDuration = 0;
-  Timer? _recordingTimer;
-  Timer? _durationTimer;
+  File? _selectedAudioFile;
 
   @override
   void initState() {
     super.initState();
-    _audioRecorder = AudioRecorder();
     _audioPlayer = AudioPlayer();
   }
 
   @override
   void dispose() {
-    _recordingTimer?.cancel();
-    _durationTimer?.cancel();
-    _audioRecorder.dispose();
     _audioPlayer.dispose();
     super.dispose();
   }
 
-  Future<void> _requestPermissions() async {
-    final permissions = await [
-      Permission.microphone,
-      Permission.storage,
-    ].request();
+  Future<bool> _requestPermissions() async {
+    final microphoneStatus = await Permission.microphone.request();
+    final storageStatus = await Permission.storage.request();
 
-    final microphoneGranted = permissions[Permission.microphone] ?? false;
-    final storageGranted = permissions[Permission.storage] ?? false;
-
-    if (!microphoneGranted) {
+    if (microphoneStatus != PermissionStatus.granted) {
       _showPermissionDialog('microphone');
       return false;
     }
 
-    if (!storageGranted) {
+    if (storageStatus != PermissionStatus.granted) {
       _showPermissionDialog('storage');
       return false;
     }
@@ -91,71 +75,35 @@ class _AudioRecorderWidgetState extends State<AudioRecorderWidget> {
     );
   }
 
-  Future<void> _startRecording() async {
+  Future<void> _pickAudioFile() async {
     final hasPermissions = await _requestPermissions();
     if (!hasPermissions) return;
 
     try {
-      final directory = await getTemporaryDirectory();
-      final path = '${directory.path}/audio_${DateTime.now().millisecondsSinceEpoch}.m4a';
-      
-      await _audioRecorder.start(
-        const RecordConfig(
-          encoder: AudioEncoder.aacLc,
-          bitRate: 128000,
-          sampleRate: 44100,
-        ),
-        path: path,
+      final result = await FilePicker.platform.pickFiles(
+        type: FileType.audio,
+        allowMultiple: false,
       );
 
-      setState(() {
-        _isRecording = true;
-        _recordingPath = path;
-        _recordingDuration = 0;
-      });
-
-      // Iniciar timer para duración máxima
-      _durationTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
-        setState(() {
-          _recordingDuration++;
-        });
-
-        if (_recordingDuration >= widget.maxDuration) {
-          _stopRecording();
-        }
-      });
-
-    } catch (e) {
-      _showErrorDialog('Error al grabar audio: ${e.toString()}');
-    }
-  }
-
-  Future<void> _stopRecording() async {
-    try {
-      _durationTimer?.cancel();
-      
-      final path = await _audioRecorder.stop();
-      
-      if (path != null && File(path).existsSync()) {
-        final audioFile = File(path);
-        widget.onAudioRecorded(audioFile);
+      if (result != null && result.files.isNotEmpty) {
+        final file = File(result.files.single.path!);
         
         setState(() {
-          _isRecording = false;
-          _recordingPath = null;
-          _recordingDuration = 0;
+          _selectedAudioFile = file;
         });
+        
+        widget.onAudioRecorded(file);
       }
     } catch (e) {
-      _showErrorDialog('Error al detener grabación: ${e.toString()}');
+      _showErrorDialog('Error al seleccionar audio: ${e.toString()}');
     }
   }
 
-  Future<void> _playRecording() async {
-    if (_recordingPath == null) return;
+  Future<void> _playSelectedAudio() async {
+    if (_selectedAudioFile == null) return;
 
     try {
-      await _audioPlayer.play(DeviceFileSource(File(_recordingPath!)));
+      await _audioPlayer.play(DeviceFileSource(_selectedAudioFile!.path));
       setState(() => _isPlaying = true);
 
       _audioPlayer.onPlayerComplete.listen((_) {
@@ -175,23 +123,11 @@ class _AudioRecorderWidgetState extends State<AudioRecorderWidget> {
     }
   }
 
-  void _deleteRecording() {
-    if (_recordingPath == null) return;
-
-    try {
-      final file = File(_recordingPath!);
-      if (file.existsSync()) {
-        file.deleteSync();
-      }
-      
-      setState(() {
-        _recordingPath = null;
-        _isPlaying = false;
-        _recordingDuration = 0;
-      });
-    } catch (e) {
-      _showErrorDialog('Error al eliminar audio: ${e.toString()}');
-    }
+  void _removeSelectedAudio() {
+    setState(() {
+      _selectedAudioFile = null;
+      _isPlaying = false;
+    });
   }
 
   void _showErrorDialog(String message) {
@@ -210,12 +146,6 @@ class _AudioRecorderWidgetState extends State<AudioRecorderWidget> {
     );
   }
 
-  String _formatDuration(int seconds) {
-    final minutes = seconds ~/ 60;
-    final remainingSeconds = seconds % 60;
-    return '${minutes.toString().padLeft(2, '0')}:${remainingSeconds.toString().padLeft(2, '0')}';
-  }
-
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -232,82 +162,54 @@ class _AudioRecorderWidgetState extends State<AudioRecorderWidget> {
           Row(
             children: [
               Icon(
-                _isRecording ? Icons.mic : Icons.audiotrack,
-                color: _isRecording ? Colors.redAccent : Colors.white70,
+                _selectedAudioFile != null ? Icons.audiotrack : Icons.music_note,
+                color: _selectedAudioFile != null ? Colors.greenAccent : Colors.white70,
               ),
               const SizedBox(width: 8),
               Text(
-                _isRecording ? 'Grabando audio...' : 'Grabar audio',
+                _selectedAudioFile != null ? 'Audio seleccionado' : 'Seleccionar audio',
                 style: TextStyle(
-                  color: _isRecording ? Colors.redAccent : Colors.white,
+                  color: _selectedAudioFile != null ? Colors.greenAccent : Colors.white,
                   fontWeight: FontWeight.bold,
                 ),
               ),
-              if (_isRecording) ...[
-                const Spacer(),
-                Text(
-                  _formatDuration(_recordingDuration),
-                  style: const TextStyle(
-                    color: Colors.redAccent,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 16,
-                  ),
-                ),
-                Text(
-                  '/ ${widget.maxDuration}s',
-                  style: TextStyle(
-                    color: Colors.white70,
-                    fontSize: 14,
-                  ),
-                ),
-              ],
             ],
           ),
           
-          if (_isRecording) ...[
+          if (_selectedAudioFile != null) ...[
             const SizedBox(height: 16),
-            // Onda de audio animada
+            // Información del archivo
             Container(
-              height: 60,
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: List.generate(20, (index) {
-                  return AnimatedContainer(
-                    duration: Duration(milliseconds: 100 + (index * 50)),
-                    width: 3,
-                    height: 20 + (_recordingDuration % 20),
-                    margin: const EdgeInsets.symmetric(horizontal: 1),
-                    decoration: BoxDecoration(
-                      color: Colors.redAccent,
-                      borderRadius: BorderRadius.circular(2),
-                    ),
-                  );
-                }),
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.grey.shade800,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Archivo: ${_selectedAudioFile!.path.split('/').last}',
+                    style: const TextStyle(color: Colors.white70, fontSize: 12),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 4),
+                  const Text(
+                    'Duración máxima: ${60} segundos',
+                    style: TextStyle(color: Colors.white70, fontSize: 12),
+                  ),
+                ],
               ),
             ),
             
-            const SizedBox(height: 16),
-            // Botón de detener
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton.icon(
-                onPressed: _stopRecording,
-                icon: const Icon(Icons.stop, color: Colors.white),
-                label: const Text('Detener grabación', style: TextStyle(color: Colors.white)),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.redAccent,
-                  padding: const EdgeInsets.symmetric(vertical: 12),
-                ),
-              ),
-            ),
-          ] else if (_recordingPath != null) ...[
             const SizedBox(height: 16),
             // Controles de reproducción
             Row(
               children: [
                 Expanded(
                   child: ElevatedButton.icon(
-                    onPressed: _isPlaying ? _stopPlaying : _playRecording,
+                    onPressed: _isPlaying ? _stopPlaying : _playSelectedAudio,
                     icon: Icon(
                       _isPlaying ? Icons.stop : Icons.play_arrow,
                       color: Colors.white,
@@ -324,7 +226,7 @@ class _AudioRecorderWidgetState extends State<AudioRecorderWidget> {
                 ),
                 const SizedBox(width: 8),
                 ElevatedButton.icon(
-                  onPressed: _deleteRecording,
+                  onPressed: _removeSelectedAudio,
                   icon: const Icon(Icons.delete, color: Colors.white),
                   label: const Text('Eliminar', style: TextStyle(color: Colors.white)),
                   style: ElevatedButton.styleFrom(
@@ -336,18 +238,27 @@ class _AudioRecorderWidgetState extends State<AudioRecorderWidget> {
             ),
           ] else ...[
             const SizedBox(height: 16),
-            // Botón de iniciar grabación
+            // Botón para seleccionar audio
             SizedBox(
               width: double.infinity,
               child: ElevatedButton.icon(
-                onPressed: _startRecording,
-                icon: const Icon(Icons.mic, color: Colors.white),
-                label: const Text('Iniciar grabación', style: TextStyle(color: Colors.white)),
+                onPressed: _pickAudioFile,
+                icon: const Icon(Icons.audiotrack, color: Colors.white),
+                label: const Text('Seleccionar archivo de audio', style: TextStyle(color: Colors.white)),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.blueAccent,
                   padding: const EdgeInsets.symmetric(vertical: 12),
                 ),
               ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Formatos soportados: MP3, WAV, AAC, M4A',
+              style: TextStyle(
+                color: Colors.white70,
+                fontSize: 12,
+              ),
+              textAlign: TextAlign.center,
             ),
           ],
         ],

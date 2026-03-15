@@ -227,13 +227,32 @@ echo   Aplicacion MusicApp Valledupar detenida
 echo ===================================================
 echo.
 echo La aplicacion Flutter se ha detenido
-echo Los servicios backend y MongoDB siguen corriendo
-echo.
-echo Para detener todos los servicios:
-echo 1. Cierra la ventana "Backend - MusicApp"
-echo 2. Cierra la ventana "MongoDB Server"
-echo.
-echo O ejecuta: taskkill /F /IM node.exe /IM mongod.exe
+echo Deteniendo servicios backend y MongoDB...
 echo.
 
-pause
+echo Cerrando procesos Node.js (Backend)...
+taskkill /F /IM node.exe >nul 2>&1
+if %errorlevel% equ 0 (
+    echo OK: Backend detenido
+) else (
+    echo INFO: No se encontraron procesos Node.js activos
+)
+
+echo.
+echo Cerrando procesos MongoDB...
+taskkill /F /IM mongod.exe >nul 2>&1
+if %errorlevel% equ 0 (
+    echo OK: MongoDB detenido
+) else (
+    echo INFO: No se encontraron procesos MongoDB activos
+)
+
+echo.
+echo ===================================================
+echo   Todos los servicios han sido detenidos
+echo ===================================================
+echo.
+echo La aplicacion y todos sus servicios se han cerrado correctamente
+echo Presiona cualquier tecla para salir...
+
+pause >nul

@@ -31,71 +31,82 @@ exports.crearPublicacion = async (req, res, next) => {
     }
     // ─────────────────────────────────────────────────────────────────────────
 
-    // ── Procesar archivos subidos ───────────────────────────────────────────────
+    // ── Procesar archivos subidos con metadatos detallados ───────────────────────
     const evidencias = [];
-    let tipoEvidencia = 'IMAGEN'; // Por defecto
-    let duracionAudio = null;
     
     if (req.files && req.files.length > 0) {
-      req.files.forEach(file => {
-        evidencias.push(file.path); // Cloudinary URL
-        
+      for (const file of req.files) {
         // Detectar tipo de archivo por extensión
-        const fileExtension = file.path.toLowerCase().split('.').pop();
-        if (['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(fileExtension)) {
-          // Es imagen - mantener tipo actual
-        } else if (['mp4', 'mov', 'avi', 'mkv', 'webm'].includes(fileExtension)) {
-          if (tipoEvidencia === 'IMAGEN') tipoEvidencia = 'VIDEO';
-        } else if (['mp3', 'wav', 'aac', 'm4a', 'ogg', 'flac'].includes(fileExtension)) {
-          tipoEvidencia = 'AUDIO';
-          
-          // Si es audio, verificar duración (Cloudinary proporciona metadata)
-          if (file.duration) {
-            duracionAudio = Math.min(file.duration, 60); // Máximo 60 segundos
-          }
-        }
+        const fileExtension = file.originalname.toLowerCase().split('.').pop();
+        let tipoArchivo = 'IMAGEN';
         
-        // Si hay múltiples tipos, es MIXTO
-        if (evidencias.length > 1) {
-          const hasImage = req.files.some(f => {
-            const ext = f.path.toLowerCase().split('.').pop();
-            return ['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(ext);
-          });
-          const hasVideo = req.files.some(f => {
-            const ext = f.path.toLowerCase().split('.').pop();
-            return ['mp4', 'mov', 'avi', 'mkv', 'webm'].includes(ext);
-          });
-          const hasAudio = req.files.some(f => {
-            const ext = f.path.toLowerCase().split('.').pop();
-            return ['mp3', 'wav', 'aac', 'm4a', 'ogg', 'flac'].includes(ext);
-          });
+        if (['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(fileExtension)) {
+          tipoArchivo = 'IMAGEN';
+        } else if (['mp4', 'mov', 'avi', 'mkv', 'webm'].includes(fileExtension)) {
+          tipoArchivo = 'VIDEO';
+        } else if (['mp3', 'wav', 'aac', 'm4a', 'ogg', 'flac'].includes(fileExtension)) {
+          tipoArchivo = 'AUDIO';
           
-          if ((hasImage && hasVideo) || (hasImage && hasAudio) || (hasVideo && hasAudio)) {
-            tipoEvidencia = 'MIXTO';
+          // Validar duración del audio (máximo 60 segundos)
+          if (file.duration && file.duration > 60) {
+            return res.status(400).json({
+              message: 'Los audios no pueden superar los 60 segundos',
+              maxDuration: 60,
+              actualDuration: file.duration,
+            });
           }
         }
-      });
+
+        // Crear objeto de evidencia con metadatos completos
+        const evidencia = {
+          url: file.path, // URL de Cloudinary
+          tipo: tipoArchivo,
+          nombreOriginal: file.originalname,
+          tamaño: file.size || 0,
+          formato: fileExtension,
+          duracion: file.duration || null,
+          dimensiones: {
+            ancho: file.width || null,
+            alto: file.height || null,
+          },
+          thumbnail: file.thumbnail || null,
+          publicId: file.public_id || file.filename,
+          orden: evidencias.length,
+        };
+
+        evidencias.push(evidencia);
+      }
     }
 
-    const nuevaPublicacion = await Publicacion.create({
+    // ── Crear publicación con todos los datos ───────────────────────────────────
+    const nuevaPublicacion = new Publicacion({
       autor: userId,
       contenido,
       tipoPost: tipoPost || 'GENERAL',
       vacantes: vacantes ? Number(vacantes) : null,
       precio: precio ? Number(precio) : null,
       evidencias,
-      tipoEvidencia,
-      duracionAudio,
+      estadisticas: {
+        visualizaciones: 0,
+        compartidos: 0,
+        clicksEnEvidencias: 0,
+      },
+      estado: 'ACTIVA',
+      privacidad: {
+        tipo: 'PUBLICO',
+        permitirComentarios: true,
+        permitirCompartir: true,
+      },
     });
 
-    const publicacionPopulada = await Publicacion.findById(nuevaPublicacion._id).populate(
-      'autor',
-      'nombre email rol'
-    );
+    await nuevaPublicacion.save();
+
+    // ── Poblar datos del autor para respuesta ───────────────────────────────────
+    await nuevaPublicacion.populate('autor', 'nombre username avatar email rol');
 
     res.status(201).json({
-      status: 'success',
-      data: publicacionPopulada,
+      message: 'Publicación creada exitosamente',
+      publicacion: nuevaPublicacion,
     });
   } catch (error) {
     next(error);
