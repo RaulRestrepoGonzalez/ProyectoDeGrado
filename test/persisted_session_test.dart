@@ -16,7 +16,7 @@ String _createFakeJwt({required int expiresInSeconds}) {
     utf8.encode(
       json.encode({
         'email': 'persisted@usuario.com',
-        'rol': 'musico',
+        'rol': 'artista',
         'exp':
             (DateTime.now().toUtc().millisecondsSinceEpoch ~/ 1000) +
             expiresInSeconds,

@@ -79,28 +79,45 @@ class _SearchScreenState extends State<SearchScreen> {
       length: 3,
       child: Scaffold(
         appBar: AppBar(
-          title: TextField(
-            controller: _searchController,
-            onChanged: _onSearchChanged,
-            autofocus: true,
-            decoration: InputDecoration(
-              hintText: 'Buscar...',
-              border: InputBorder.none,
-              hintStyle: const TextStyle(color: Colors.white54),
-              suffixIcon: IconButton(
-                icon: const Icon(Icons.clear, color: Colors.white54),
-                onPressed: () {
-                  _searchController.clear();
-                  _onSearchChanged('');
-                },
+          toolbarHeight: 80, // Más espacio para la barra de búsqueda
+          title: Padding(
+            padding: const EdgeInsets.only(top: 8.0),
+            child: Container(
+              decoration: BoxDecoration(
+                color: AppColors.surface.withOpacity(0.5),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: AppColors.border),
+              ),
+              child: TextField(
+                controller: _searchController,
+                onChanged: _onSearchChanged,
+                autofocus: true,
+                decoration: InputDecoration(
+                  hintText: 'Buscar músicos, bandas o posts...',
+                  border: InputBorder.none,
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  hintStyle: const TextStyle(color: Colors.white54, fontSize: 14),
+                  prefixIcon: const Icon(Icons.search, color: Colors.white54, size: 20),
+                  suffixIcon: _searchController.text.isNotEmpty 
+                    ? IconButton(
+                        icon: const Icon(Icons.clear, color: Colors.white54, size: 20),
+                        onPressed: () {
+                          _searchController.clear();
+                          _onSearchChanged('');
+                        },
+                      )
+                    : null,
+                ),
+                style: const TextStyle(color: Colors.white, fontSize: 15),
               ),
             ),
-            style: const TextStyle(color: Colors.white),
           ),
           bottom: const TabBar(
             indicatorColor: AppColors.accent,
+            indicatorWeight: 3,
             labelColor: AppColors.accent,
             unselectedLabelColor: Colors.white54,
+            labelStyle: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
             tabs: [
               Tab(text: 'Publicaciones'),
               Tab(text: 'Perfiles'),

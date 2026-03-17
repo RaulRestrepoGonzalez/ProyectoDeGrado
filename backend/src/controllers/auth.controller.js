@@ -26,7 +26,7 @@ const register = async (req, res, next) => {
       email,
       password: hashed,
       nombre: nombre || 'Sin nombre',
-      rol: rol === 'agrupacion' ? 'agrupacion' : 'musico',
+      rol: rol || 'artista',
     });
 
     return res.status(201).json({

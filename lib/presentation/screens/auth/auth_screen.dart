@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../core/constants/app_colors.dart';
 import '../../../core/services/auth_service.dart';
 import '../../../data/repositories/auth_repository.dart';
 
@@ -160,6 +161,13 @@ class _AuthScreenState extends State<AuthScreen> {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
+                    const SizedBox(height: 10),
+                    Icon(
+                      Icons.music_note_rounded,
+                      size: 80,
+                      color: AppColors.accent,
+                    ),
+                    const SizedBox(height: 20),
                     if (!_isLogin) ...[
                       DropdownButtonFormField<String>(
                         initialValue: _selectedRole,

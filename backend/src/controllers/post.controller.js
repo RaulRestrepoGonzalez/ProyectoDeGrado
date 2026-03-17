@@ -130,8 +130,13 @@ exports.obtenerFeed = async (req, res, next) => {
       const hasLiked = pub.likes.some((id) => id.toString() === userId.toString());
       const hasFavorited = pub.favoritos.some((id) => id.toString() === userId.toString());
 
+      // Simplificar evidencias para el frontend (solo URLs) Pero mantenemos el tipo principal
+      const evidenciasUrls = pub.evidencias.map(e => e.url);
+
       return {
         ...pub,
+        evidencias: evidenciasUrls,
+        tipoEvidencia: pub.tipoEvidenciaPrincipal,
         likesCount: pub.likes.length,
         comentariosCount: pub.comentarios.length,
         hasLiked,
@@ -342,6 +347,55 @@ exports.denunciarPublicacion = async (req, res, next) => {
     res.status(201).json({
       status: 'success',
       message: 'Denuncia enviada y registrada correctamente.',
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// =======================
+//   BÚSQUEDA AVANZADA
+// =======================
+
+exports.buscarPorTipo = async (req, res, next) => {
+  try {
+    const { tipo } = req.params;
+    const userId = req.user.id;
+
+    const publicaciones = await Publicacion.find({
+      tipoPost: tipo.toUpperCase(),
+      estado: 'ACTIVA',
+      bloqueadaPor: { $ne: userId }
+    })
+    .sort({ createdAt: -1 })
+    .populate('autor', 'nombre rol email');
+
+    res.status(200).json({
+      status: 'success',
+      results: publicaciones.length,
+      data: publicaciones
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+exports.buscarConMultimedia = async (req, res, next) => {
+  try {
+    const userId = req.user.id;
+
+    const publicaciones = await Publicacion.find({
+      tieneEvidencias: true,
+      estado: 'ACTIVA',
+      bloqueadaPor: { $ne: userId }
+    })
+    .sort({ createdAt: -1 })
+    .populate('autor', 'nombre rol email');
+
+    res.status(200).json({
+      status: 'success',
+      results: publicaciones.length,
+      data: publicaciones
     });
   } catch (error) {
     next(error);

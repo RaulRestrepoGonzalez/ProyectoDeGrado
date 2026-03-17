@@ -4,6 +4,7 @@ const authRoutes = require('./auth.routes');
 const postRoutes = require('./post.routes');
 const userRoutes = require('./user.routes');
 const walletRoutes = require('./wallet.routes');
+const searchRoutes = require('./search.routes');
 const { authenticate } = require('../middleware/auth');
 
 const router = Router();
@@ -20,6 +21,7 @@ router.use('/auth', authRoutes);
 router.use('/posts', postRoutes);
 router.use('/users', userRoutes);
 router.use('/wallet', walletRoutes);
+router.use('/search', searchRoutes);
 
 module.exports = router;
 

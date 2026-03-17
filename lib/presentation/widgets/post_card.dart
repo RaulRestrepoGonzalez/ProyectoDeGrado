@@ -137,8 +137,8 @@ class _PostCardState extends State<PostCard> {
 
     final hasImage = evidencias.isNotEmpty && tipoEvidencia != 'AUDIO';
 
-    return Container(
-      color: Colors.black, // Dark background as fallback
+    return SizedBox(
+      height: MediaQuery.of(context).size.height * 0.7, // Altura fija para feed estilo TikTok/Shorts
       child: Stack(
         fit: StackFit.expand,
         children: [

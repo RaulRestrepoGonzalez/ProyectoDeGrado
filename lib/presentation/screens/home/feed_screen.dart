@@ -281,13 +281,9 @@ class _FeedScreenState extends State<FeedScreen> {
         padding: const EdgeInsets.all(16),
         itemCount: _posts.length,
         itemBuilder: (context, index) {
-          return AnimatedContainer(
-            duration: const Duration(milliseconds: 200),
-            margin: const EdgeInsets.only(bottom: 16),
-            child: PostCard(
-              post: _posts[index],
-              onRefresh: _loadPosts,
-            ),
+          return PostCard(
+            post: _posts[index],
+            onRefresh: _loadPosts,
           );
         },
       ),

@@ -1,7 +1,7 @@
 const { Router } = require('express');
 const { obtenerPerfilUsuario, toggleSeguirUsuario, actualizarPerfilUsuario } = require('../controllers/user.controller');
 const { authenticate } = require('../middleware/auth');
-const upload = require('../middleware/upload');
+const { upload } = require('../middleware/upload');
 
 const router = Router();
 

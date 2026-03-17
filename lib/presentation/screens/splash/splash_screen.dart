@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../core/constants/app_colors.dart';
 import '../../../core/services/auth_service.dart';
 
 class SplashScreen extends StatefulWidget {
@@ -50,7 +51,11 @@ class _SplashScreenState extends State<SplashScreen> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(Icons.music_note, size: 68, color: Colors.white70),
+              Icon(
+                Icons.music_note_rounded,
+                size: 120,
+                color: AppColors.accent,
+              ),
               const SizedBox(height: 12),
               const Text(
                 'MusicApp Valledupar',
