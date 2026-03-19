@@ -1,6 +1,6 @@
-# 🎵 MusicApp Valledupar
+# 🎵 SoundUpar
 
-> **Red social musical para conexión, colaboración e intercambio de oportunidades entre artistas, bandas y compañías musicales.**
+> **SoundUpar - Red social musical para conexión, colaboración e intercambio de oportunidades entre artistas, bandas y compañías musicales.**
 >
 > Proyecto de grado — Ingeniería de Sistemas, Universidad Popular del Cesar  
 > Autores: Kevin Manuel Castillo Aroca · Rubén Darío Ariza Valencia (2025–2026)
@@ -10,7 +10,7 @@
 ## 📁 Estructura del Proyecto
 
 ```
-musicapp_valledupar/
+soundupar/
 ├── lib/                          # Código Flutter (frontend - Clean Architecture)
 │   ├── main.dart                 # Punto de entrada
 │   ├── core/
@@ -161,10 +161,10 @@ npm run dev
 
 ```env
 # Base de datos
-MONGODB_URI=mongodb+srv://user:pass@cluster.mongodb.net/musicapp
+MONGODB_URI=mongodb+srv://user:pass@cluster.mongodb.net/soundupar
 # O alternativa (para emuladores/redes):
 MONGO_HOSTS=localhost:27017,10.0.2.2:27017
-MONGO_DB=musicapp
+MONGO_DB=soundupar
 
 # Seguridad
 JWT_SECRET=tu_llave_secreta_jwt_fuerte

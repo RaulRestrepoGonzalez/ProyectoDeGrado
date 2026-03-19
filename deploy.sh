@@ -1,11 +1,11 @@
 #!/bin/bash
 
-# MusicApp Valledupar - Script de despliegue universal
+# SoundUpar - Script de despliegue universal
 # Detecta automáticamente el entorno y configura el despliegue
 
 set -e
 
-echo "🚀 MusicApp Valledupar - Script de Despliegue Universal"
+echo "🚀 SoundUpar - Script de Despliegue Universal"
 echo "=================================================="
 
 # Detectar entorno

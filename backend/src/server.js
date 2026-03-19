@@ -10,7 +10,7 @@ const PORT = process.env.PORT || 3000;
 
 (async () => {
   try {
-    console.log('🚀 Iniciando MusicApp Valledupar Backend...');
+    console.log('🚀 Iniciando SoundUpar Backend...');
     
     // Detectar y validar entorno automáticamente
     validateEnv();

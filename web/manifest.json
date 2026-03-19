@@ -1,11 +1,11 @@
 {
-    "name": "musicapp_valledupar",
-    "short_name": "musicapp_valledupar",
+    "name": "SoundUpar",
+    "short_name": "SoundUpar",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",
     "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
+    "description": "SoundUpar - Conecta con músicos y agrupaciones.",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

@@ -1,8 +1,8 @@
-# MusicApp Valledupar - Guía de Despliegue
+# SoundUpar - Guía de Despliegue
 
 ## 🌍 Entornos Soportados
 
-El backend de MusicApp Valledupar se adapta automáticamente a cualquier entorno de despliegue:
+El backend de SoundUpar se adapta automáticamente a cualquier entorno de despliegue:
 
 ### 🖥️ Desarrollo Local
 ```bash
@@ -16,7 +16,7 @@ npm run dev
 docker build -t musicapp-backend ./backend
 
 # Ejecutar contenedor
-docker run -p 3000:3000 -e MONGODB_URI=mongodb://host.docker.internal:27017/musicapp_valledupar musicapp-backend
+docker run -p 3000:3000 -e MONGODB_URI=mongodb://host.docker.internal:27017/soundupar_db musicapp-backend
 ```
 
 ### 🐳 Docker Compose
@@ -73,14 +73,14 @@ El backend detecta automáticamente:
 ### Opcionales (con valores por defecto)
 - `PORT`: 3000
 - `NODE_ENV`: development
-- `MONGODB_URI`: mongodb://localhost:27017/musicapp_valledupar
+- `MONGODB_URI`: mongodb://localhost:27017/soundupar_db
 - `CLIENT_ORIGIN`: *
 - `SOCKET_PORT`: 4000
 
 ### Específicas por plataforma
 - **Railway**: `RAILWAY_MONGODB_URI`
 - **Render**: `RENDER_MONGODB_URI`
-- **Docker**: `MONGODB_URI=mongodb://mongodb:27017/musicapp_valledupar`
+- **Docker**: `MONGODB_URI=mongodb://mongodb:27017/soundupar_db`
 
 ## 🏥 Health Check
 

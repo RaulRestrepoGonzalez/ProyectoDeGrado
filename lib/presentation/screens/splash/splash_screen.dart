@@ -58,7 +58,7 @@ class _SplashScreenState extends State<SplashScreen> {
               ),
               const SizedBox(height: 12),
               const Text(
-                'MusicApp Valledupar',
+                'SoundUpar',
                 style: TextStyle(
                   color: Colors.white,
                   fontSize: 28,

@@ -10,7 +10,7 @@ const { authenticate } = require('../middleware/auth');
 const router = Router();
 
 router.get('/', (req, res) => {
-  res.json({ message: 'MusicApp Valledupar API' });
+  res.json({ message: 'SoundUpar API' });
 });
 
 router.get('/protected', authenticate, (req, res) => {

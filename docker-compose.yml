@@ -1,25 +1,25 @@
 version: '3.8'
 
 services:
-  # Backend de MusicApp Valledupar
+  # Backend de SoundUpar
   backend:
     build:
       context: ./backend
       dockerfile: Dockerfile
-    container_name: musicapp-backend
+    container_name: soundupar-backend
     restart: unless-stopped
     ports:
       - "3000:3000"
     environment:
       - NODE_ENV=production
       - PORT=3000
-      - MONGODB_URI=mongodb://mongodb:27017/musicapp_valledupar
+      - MONGODB_URI=mongodb://mongodb:27017/soundupar_db
       - CLIENT_ORIGIN=*
       - JWT_SECRET=your-super-secret-jwt-key-change-this-in-production
     depends_on:
       - mongodb
     networks:
-      - musicapp-network
+      - soundupar-network
     volumes:
       - ./backend:/app
       - /app/node_modules
@@ -33,19 +33,19 @@ services:
   # Base de datos MongoDB
   mongodb:
     image: mongo:6.0
-    container_name: musicapp-mongodb
+    container_name: soundupar-mongodb
     restart: unless-stopped
     ports:
       - "27017:27017"
     environment:
       - MONGO_INITDB_ROOT_USERNAME=admin
       - MONGO_INITDB_ROOT_PASSWORD=password123
-      - MONGO_INITDB_DATABASE=musicapp_valledupar
+      - MONGO_INITDB_DATABASE=soundupar_db
     volumes:
       - mongodb_data:/data/db
       - ./scripts/mongo-init.js:/docker-entrypoint-initdb.d/mongo-init.js:ro
     networks:
-      - musicapp-network
+      - soundupar-network
     healthcheck:
       test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
       interval: 30s
@@ -56,7 +56,7 @@ services:
   # Nginx (opcional, para producción)
   nginx:
     image: nginx:alpine
-    container_name: musicapp-nginx
+    container_name: soundupar-nginx
     restart: unless-stopped
     ports:
       - "80:80"
@@ -67,12 +67,12 @@ services:
       - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
       - ./nginx/ssl:/etc/nginx/ssl:ro
     networks:
-      - musicapp-network
+      - soundupar-network
 
 volumes:
   mongodb_data:
     driver: local
 
 networks:
-  musicapp-network:
+  soundupar-network:
     driver: bridge

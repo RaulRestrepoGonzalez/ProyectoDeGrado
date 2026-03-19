@@ -1,8 +1,8 @@
 @echo off
-title MusicApp Valledupar Loader
+title SoundUpar Loader
 
 echo ===================================================
-echo   Iniciando MusicApp Valledupar (Backend + Frontend)
+echo   Iniciando SoundUpar (Backend + Frontend)
 echo ===================================================
 echo.
 
@@ -99,7 +99,7 @@ if exist "%BACKEND_ENV_FILE%" del "%BACKEND_ENV_FILE%"
 (
     echo PORT=%BACKEND_PORT%
     echo NODE_ENV=development
-    echo MONGODB_URI=mongodb://localhost:27017/musicapp_valledupar
+    echo MONGODB_URI=mongodb://localhost:27017/soundupar_db
     echo JWT_SECRET=musicapp_secret_%RANDOM%_%TIME:~0,8%
     echo CLIENT_ORIGIN=*
     echo SOCKET_PORT=4000
@@ -143,7 +143,7 @@ if %errorlevel% equ 0 (
 )
 
 echo Iniciando servidor backend...
-start "Backend - MusicApp" cmd /k "title Backend - MusicApp && echo ======================================== && echo BACKEND - MUSICAPP VALLEDUPAR && echo ======================================== && npm run dev"
+start "Backend - SoundUpar" cmd /k "title Backend - SoundUpar && echo ======================================== && echo BACKEND - MUSICAPP VALLEDUPAR && echo ======================================== && npm run dev"
 
 echo Esperando que el backend inicie completamente...
 timeout /t 15
@@ -190,7 +190,7 @@ echo.
 echo Backend API:     http://%LOCAL_IP%:%BACKEND_PORT%/api
 echo Health Check:    http://%LOCAL_IP%:%BACKEND_PORT%/health
 echo Socket.IO:       http://%LOCAL_IP%:4000
-echo MongoDB:         mongodb://localhost:27017/musicapp_valledupar
+echo MongoDB:         mongodb://localhost:27017/soundupar_db
 echo.
 echo Para dispositivos moviles en esta red:
 echo - Usa: http://%LOCAL_IP%:%BACKEND_PORT%/api
@@ -201,7 +201,7 @@ echo - iOS: http://localhost:%BACKEND_PORT%/api
 echo.
 echo Servicios corriendo en ventanas separadas:
 echo - MongoDB Server
-echo - Backend - MusicApp
+echo - Backend - SoundUpar
 echo.
 echo ===================================================
 echo.
@@ -223,7 +223,7 @@ call flutter run
 
 echo.
 echo ===================================================
-echo   Aplicacion MusicApp Valledupar detenida
+echo   Aplicacion SoundUpar detenida
 echo ===================================================
 echo.
 echo La aplicacion Flutter se ha detenido

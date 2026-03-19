@@ -1,7 +1,7 @@
 {
-  "name": "musicapp-valledupar-backend",
+  "name": "soundupar-backend",
   "version": "1.0.0",
-  "description": "Backend API para MusicApp Valledupar - Comunicación entre músicos y agrupaciones",
+  "description": "Backend API para SoundUpar - Comunicación entre músicos y agrupaciones",
   "main": "src/server.js",
   "scripts": {
     "start": "node src/server.js",
