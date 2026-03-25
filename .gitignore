@@ -15,6 +15,7 @@ ios/Pods/
 # Android
 android/.gradle/
 android/app/debug.keystore
+android/key.properties
 
 # macOS
 .macos/

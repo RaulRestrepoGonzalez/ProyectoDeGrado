@@ -7,7 +7,9 @@ echo   SoundUpar - Generador de APK y App Bundle
 echo ===================================================
 echo.
 
-set PROJECT_ROOT=%~dp0
+set "PROJECT_ROOT=%~dp0"
+:: Elimina la barra final para evitar problemas con cd en rutas terminadas en '\'
+set "PROJECT_ROOT=%PROJECT_ROOT:~0,-1%"
 cd /d "%PROJECT_ROOT%"
 
 :: Verificaciones iniciales
@@ -18,13 +20,57 @@ if %errorlevel% neq 0 (
     exit /b 1
 )
 
-echo [1/51] Limpiando proyecto...
+:: Verificar key.properties y keystore
+set "KEY_PROPERTIES=%PROJECT_ROOT%\android\key.properties"
+if not exist "%KEY_PROPERTIES%" (
+    echo ERROR: Falta android\key.properties.
+    echo Copia android\key.properties.sample y ajusta las contrasenas y storeFile.
+    pause
+    exit /b 1
+)
+
+for /f "usebackq tokens=1,* delims==" %%A in ("%KEY_PROPERTIES%") do (
+    if /I "%%A"=="storeFile" set STORE_FILE=%%B
+)
+
+if "%STORE_FILE%"=="" (
+    echo ERROR: storeFile no configurado en android\key.properties.
+    pause
+    exit /b 1
+)
+
+:: Normalizar ruta si son barras invertidas sin drive completo
+set STORE_FILE=%STORE_FILE:\=/%
+if exist "%STORE_FILE%" (
+    set KEYSTORE_PATH=%STORE_FILE%
+) else (
+    if exist "%PROJECT_ROOT%%STORE_FILE%" (
+        set KEYSTORE_PATH=%PROJECT_ROOT%%STORE_FILE%
+    ) else (
+        echo ERROR: Keystore no encontrado: %STORE_FILE%
+        echo Verifica la ruta en android\key.properties.
+        pause
+        exit /b 1
+    )
+)
+
+:: Comprobar modo desarrollador en Windows
+reg query "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\AppModelUnlock" /v "AllowDevelopmentWithoutDevLicense" >nul 2>&1
+if %errorlevel% neq 0 (
+    echo ADVERTENCIA: No se encontro la clave de modo desarrollador.
+    echo Puedes habilitarla en Configuracion > Para desarrolladores (Recomendado).
+    echo Continuando de todos modos (puede fallar si no hay symlink support).
+) else (
+    echo Modo desarrollador detectado.
+)
+
+echo [1/6] Limpiando proyecto...
 call flutter clean
 
-echo [2/5] Descargando dependencias...
+echo [2/6] Descargando dependencias...
 call flutter pub get
 
-echo [3/5] Compilando APK (para instalacion manual)...
+echo [3/6] Compilando APK (para instalacion manual)...
 call flutter build apk --release
 if %errorlevel% neq 0 (
     echo ERROR: Fallo la compilacion del APK.

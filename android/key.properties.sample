@@ -1,0 +1,4 @@
+storePassword=tu-password-de-almacen
+keyPassword=tu-password-de-llave
+keyAlias=soundupar
+storeFile=/ruta/completa/a/soundupar-keystore.jks

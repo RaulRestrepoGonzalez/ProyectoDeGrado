@@ -52,8 +52,8 @@ const storage = new CloudinaryStorage({
 const upload = multer({ 
   storage: storage,
   limits: { 
-    fileSize: 20 * 1024 * 1024, // 20 MB para soportar videos más largos
-    files: 5 // Máximo 5 archivos
+    fileSize: 100 * 1024 * 1024, // 100 MB para videos más largos
+    files: 10 // Máximo 10 archivos (ajustable)
   },
   fileFilter: (req, file, cb) => {
     // Validar tipos de archivo permitidos
@@ -64,12 +64,16 @@ const upload = multer({
       'image/png',
       'image/gif',
       'image/webp',
+      'image/svg+xml',
       // Videos
       'video/mp4',
       'video/quicktime',
       'video/x-msvideo',
       'video/x-matroska',
       'video/webm',
+      'video/3gpp',
+      'video/mpeg',
+      'video/x-flv',
       // Audios
       'audio/mpeg',
       'audio/wav',
@@ -80,7 +84,7 @@ const upload = multer({
     ];
 
     const fileExtension = file.originalname.toLowerCase().split('.').pop();
-    const allowedExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'mp4', 'mov', 'avi', 'mkv', 'webm', 'mp3', 'wav', 'aac', 'm4a', 'ogg', 'flac'];
+    const allowedExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg', 'mp4', 'mov', 'avi', 'mkv', 'webm', '3gp', 'mpeg', 'flv', 'mp3', 'wav', 'aac', 'm4a', 'ogg', 'flac'];
 
     if (allowedTypes.includes(file.mimetype) || allowedExtensions.includes(fileExtension)) {
       cb(null, true);

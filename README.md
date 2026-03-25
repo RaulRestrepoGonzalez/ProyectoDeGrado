@@ -210,7 +210,15 @@ flutter run -d emulator-5554
 flutter run -d <device_id>
 
 # Build APK liberación:
+```bash
 flutter build apk --release
+```
+
+> Para publicar en Google Play, primero crea un keystore y un archivo `android/key.properties` (ver `SIGNING_GUIDE.md`).
+
+## Build App Bundle (Play Store)
+```bash
+flutter build appbundle --release
 ```
 
 **Notas importantes:**
