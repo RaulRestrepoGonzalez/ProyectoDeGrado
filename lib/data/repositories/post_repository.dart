@@ -41,10 +41,9 @@ class PostRepository {
       });
 
       for (var path in evidencias) {
-        formData.files.add(MapEntry(
-          'evidencias',
-          await MultipartFile.fromFile(path),
-        ));
+        formData.files.add(
+          MapEntry('evidencias', await MultipartFile.fromFile(path)),
+        );
       }
 
       await _dio.post('/posts', data: formData);
@@ -87,12 +86,19 @@ class PostRepository {
     }
   }
 
-  Future<void> reportPost(String postId, String motivo, String? comentariosOpcionales) async {
+  Future<void> reportPost(
+    String postId,
+    String motivo,
+    String? comentariosOpcionales,
+  ) async {
     try {
-      await _dio.post('/posts/$postId/denunciar', data: {
-        'motivo': motivo,
-        'comentariosOpcionales': comentariosOpcionales,
-      });
+      await _dio.post(
+        '/posts/$postId/denunciar',
+        data: {
+          'motivo': motivo,
+          'comentariosOpcionales': comentariosOpcionales,
+        },
+      );
     } catch (e) {
       throw Exception(_extractErrorMessage(e));
     }
@@ -100,17 +106,57 @@ class PostRepository {
 
   String _extractErrorMessage(dynamic error) {
     if (error is DioException) {
+      switch (error.type) {
+        case DioExceptionType.connectionTimeout:
+        case DioExceptionType.sendTimeout:
+        case DioExceptionType.receiveTimeout:
+          return 'Tiempo de espera agotado. Verifica tu conexión a internet.';
+
+        case DioExceptionType.connectionError:
+          return 'No se puede conectar al servidor. Verifica que el backend esté ejecutándose.';
+
+        case DioExceptionType.badResponse:
+          if (error.response?.statusCode == 401) {
+            return 'Sesión expirada. Inicia sesión nuevamente.';
+          } else if (error.response?.statusCode == 403) {
+            return 'No tienes permisos para esta acción.';
+          } else if (error.response?.statusCode == 404) {
+            return 'Recurso no encontrado.';
+          } else if (error.response?.statusCode == 500) {
+            return 'Error interno del servidor. Inténtalo más tarde.';
+          }
+          break;
+
+        case DioExceptionType.cancel:
+          return 'Operación cancelada.';
+
+        case DioExceptionType.unknown:
+        default:
+          // Verificar si es un error de DNS o conectividad
+          if (error.message?.contains('Failed host lookup') ?? false) {
+            return 'No se puede resolver la dirección del servidor. Verifica tu conexión.';
+          }
+          if (error.message?.contains('Network is unreachable') ?? false) {
+            return 'Red no disponible. Verifica tu conexión a internet.';
+          }
+          break;
+      }
+
+      // Si hay respuesta del servidor, extraer mensaje específico
       if (error.response?.data != null) {
         final data = error.response!.data;
         if (data is Map) {
-          if (data.containsKey('errors') && data['errors'] is List && (data['errors'] as List).isNotEmpty) {
-             return data['errors'][0]['message'] ?? 'Error de validación';
+          if (data.containsKey('errors') &&
+              data['errors'] is List &&
+              (data['errors'] as List).isNotEmpty) {
+            return data['errors'][0]['message'] ?? 'Error de validación';
           }
           if (data.containsKey('message')) {
             return data['message'];
           }
         }
       }
+
       return 'Error de red o servidor no disponible.';
     }
     return error.toString();

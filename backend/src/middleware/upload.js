@@ -3,14 +3,27 @@ const { CloudinaryStorage } = require('multer-storage-cloudinary');
 const cloudinary = require('cloudinary').v2;
 
 // Configuración de Cloudinary (Usa credenciales del .env)
-cloudinary.config({
-  cloud_name: process.env.CLOUDINARY_CLOUD_NAME || 'demo',
-  api_key: process.env.CLOUDINARY_API_KEY || '1234567890',
-  api_secret: process.env.CLOUDINARY_API_SECRET || 'abcdefghijk'
-});
+const cloudName = process.env.CLOUDINARY_CLOUD_NAME;
+const cloudApiKey = process.env.CLOUDINARY_API_KEY;
+const cloudApiSecret = process.env.CLOUDINARY_API_SECRET;
+
+let cloudinaryConfigured = false;
+
+if (cloudName && cloudApiKey && cloudApiSecret) {
+  cloudinary.config({
+    cloud_name: cloudName,
+    api_key: cloudApiKey,
+    api_secret: cloudApiSecret,
+  });
+  cloudinaryConfigured = true;
+  console.log('☁️  Cloudinary configurado correctamente');
+} else {
+  console.warn('⚠️  Cloudinary NO configurado. Las subidas de archivos estarán deshabilitadas.');
+  console.warn('   Para habilitar: agrega CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY y CLOUDINARY_API_SECRET en backend/.env');
+}
 
 // Configuración de almacenamiento optimizada para diferentes tipos de archivos
-const storage = new CloudinaryStorage({
+const storage = cloudinaryConfigured ? new CloudinaryStorage({
   cloudinary: cloudinary,
   params: async (req, file) => {
     // Determinar el tipo de recurso basado en el archivo
@@ -46,7 +59,7 @@ const storage = new CloudinaryStorage({
       ] : [], // Para audios no aplicamos transformaciones
     };
   },
-});
+}) : null;
 
 // Middleware de upload con configuraciones mejoradas
 const upload = multer({ 
@@ -56,6 +69,11 @@ const upload = multer({
     files: 10 // Máximo 10 archivos (ajustable)
   },
   fileFilter: (req, file, cb) => {
+    // Si Cloudinary no está configurado, rechazar todas las subidas
+    if (!cloudinaryConfigured) {
+      return cb(new Error('Cloudinary no está configurado. Las subidas de archivos están deshabilitadas temporalmente.'), false);
+    }
+
     // Validar tipos de archivo permitidos
     const allowedTypes = [
       // Imágenes
@@ -96,6 +114,11 @@ const upload = multer({
 
 // Middleware para procesar metadatos después de la subida
 const processUploadedFiles = (req, res, next) => {
+  // Si Cloudinary no está configurado, saltar procesamiento
+  if (!cloudinaryConfigured) {
+    return next();
+  }
+
   if (!req.files || req.files.length === 0) {
     return next();
   }
@@ -128,5 +151,6 @@ const processUploadedFiles = (req, res, next) => {
 
 module.exports = {
   upload,
-  processUploadedFiles
+  processUploadedFiles,
+  isCloudinaryConfigured: () => cloudinaryConfigured
 };

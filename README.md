@@ -7,6 +7,182 @@
 
 ---
 
+## 🚀 Inicio Rápido
+
+### 1. Diagnóstico Automático
+```bash
+# Windows
+diagnostico.bat
+
+# Linux/Mac
+./diagnostico.sh
+```
+
+### 2. Setup Completo
+```bash
+# Windows
+start_dev.bat
+
+# Linux/Mac
+./start_dev.sh
+```
+
+### 3. Verificar Servicios
+- **Backend API**: http://localhost:3000
+- **Health Check**: http://localhost:3000/health
+- **App Flutter**: `flutter run`
+
+---
+
+## 📋 Requisitos Previos
+
+### Backend
+- **Node.js** 18+ ([Descargar](https://nodejs.org/))
+- **MongoDB** Community ([Descargar](https://www.mongodb.com/try/download/community))
+- **npm** o **yarn**
+
+### Frontend
+- **Flutter** 3.10+ ([Instalar](https://flutter.dev/docs/get-started/install))
+- **Android Studio** con emulador configurado
+- **VS Code** recomendado
+
+### Sistema
+- **Windows 10/11**, **macOS**, o **Linux**
+- **4GB RAM** mínimo, **8GB** recomendado
+- **Espacio**: 2GB para Flutter + dependencias
+
+---
+
+## 🔧 Instalación Manual
+
+### 1. Clonar y Configurar
+```bash
+git clone <repository-url>
+cd soundupar
+
+# Configurar Flutter
+flutter pub get
+
+# Configurar Backend
+cd backend
+npm install
+```
+
+### 2. Variables de Entorno
+
+#### Backend (.env)
+```bash
+# Copiar template
+cp .env.example .env
+
+# Editar con tus valores
+PORT=3000
+MONGODB_URI=mongodb://localhost:27017/soundupar_db
+JWT_SECRET=tu_jwt_secret_seguro_aqui
+
+# Opcional: Cloudinary para multimedia
+CLOUDINARY_CLOUD_NAME=tu_cloud_name
+CLOUDINARY_API_KEY=tu_api_key
+CLOUDINARY_API_SECRET=tu_api_secret
+```
+
+#### Flutter (.env)
+```bash
+# Copiar template
+cp .env.example .env
+
+# Para desarrollo local
+BASE_URL=http://192.168.1.9:3000/api
+SOCKET_URL=http://192.168.1.9:4000
+```
+
+### 3. Iniciar Servicios
+
+#### Terminal 1: MongoDB
+```bash
+# Windows (como administrador)
+net start MongoDB
+
+# Linux/Mac
+sudo systemctl start mongod
+
+# Docker (alternativa)
+docker run -d --name mongodb -p 27017:27017 mongo
+```
+
+#### Terminal 2: Backend
+```bash
+cd backend
+npm run dev
+```
+
+#### Terminal 3: Flutter
+```bash
+flutter run
+```
+
+---
+
+## 🔍 Solución de Problemas
+
+### Error: "error de red o servidor no disponible"
+
+1. **Verificar backend**:
+   ```bash
+   curl http://localhost:3000/health
+   ```
+
+2. **Configurar IP correcta** en `.env`:
+   ```bash
+   # Obtener tu IP local
+   ipconfig  # Windows
+   ifconfig  # Linux/Mac
+
+   # Actualizar .env
+   BASE_URL=http://[TU_IP]:3000/api
+   ```
+
+3. **Reiniciar servicios**:
+   ```bash
+   # Backend
+   cd backend && npm run dev
+
+   # Flutter
+   flutter clean && flutter run
+   ```
+
+### Error: "Cloudinary no configurado"
+
+- **Solución**: Las subidas de archivos están deshabilitadas por defecto
+- **Para habilitar**: Agrega credenciales de Cloudinary en `backend/.env`
+
+### Error: "MongoDB connection failed"
+
+1. **Verificar MongoDB**:
+   ```bash
+   mongo  # Debe abrir shell de MongoDB
+   ```
+
+2. **Iniciar servicio**:
+   ```bash
+   # Windows
+   net start MongoDB
+
+   # Linux
+   sudo systemctl start mongod
+   ```
+
+### Error: "Flutter doctor issues"
+
+```bash
+flutter doctor --android-licenses
+flutter doctor
+```
+
+---
+
+## 📁 Estructura del Proyecto
+
 ## 📁 Estructura del Proyecto
 
 ```

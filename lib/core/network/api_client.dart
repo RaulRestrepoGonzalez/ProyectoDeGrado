@@ -15,7 +15,8 @@ class ApiClient {
       envBase =
           null; // dotenv not initialized (tests), will fallback to defaults
     }
-    final baseUrl = envBase ?? 'http://10.0.2.2:3000/api';
+    final baseUrl =
+        envBase ?? 'http://192.168.1.9:3000/api'; // IP local por defecto
 
     // Si no hay BASE_URL en .env, lanzamos la resolución en background
     if (envBase == null || envBase.isEmpty) {
