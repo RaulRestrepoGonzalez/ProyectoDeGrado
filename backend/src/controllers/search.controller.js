@@ -53,7 +53,7 @@ exports.searchAll = async (req, res, next) => {
 
     // Formatear respuestas para consistencia (como hicimos en obtenerFeed)
     const formatPub = (pub) => {
-      const evidenciasUrls = pub.evidencias.map(e => e.url);
+      const evidenciasUrls = pub.evidencias ? pub.evidencias.map(e => e.url || e) : [];
       return {
         ...pub.toJSON(),
         evidencias: evidenciasUrls,
