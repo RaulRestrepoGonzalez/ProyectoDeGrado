@@ -133,7 +133,7 @@ exports.actualizarPerfilUsuario = async (req, res, next) => {
     if (req.file) {
       const protocolo = req.protocol;
       const host = req.get('host');
-      updates.fotoPerfil = `${protocol}://${host}/uploads/${req.file.filename}`;
+      updates.fotoPerfil = `${protocolo}://${host}/uploads/${req.file.filename}`;
     }
 
     const usuario = await Usuario.findByIdAndUpdate(

@@ -25,6 +25,12 @@ class _SearchScreenState extends State<SearchScreen> {
   List<dynamic> _convocatorias = [];
 
   @override
+  void initState() {
+    super.initState();
+    _performSearch(''); // Cargar todo por defecto al abrir la ventana de buscar
+  }
+
+  @override
   void dispose() {
     _searchController.dispose();
     _debounce?.cancel();
@@ -34,16 +40,7 @@ class _SearchScreenState extends State<SearchScreen> {
   void _onSearchChanged(String query) {
     if (_debounce?.isActive ?? false) _debounce!.cancel();
     _debounce = Timer(const Duration(milliseconds: 500), () {
-      if (query.isNotEmpty) {
-        _performSearch(query);
-      } else {
-        setState(() {
-          _publicaciones = [];
-          _perfiles = [];
-          _convocatorias = [];
-          _error = '';
-        });
-      }
+      _performSearch(query);
     });
   }
 

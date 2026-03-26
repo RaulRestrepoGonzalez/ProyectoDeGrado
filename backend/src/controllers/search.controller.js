@@ -4,17 +4,7 @@ const Usuario = require('../models/Usuario');
 exports.searchAll = async (req, res, next) => {
   try {
     const { q } = req.query;
-    if (!q) {
-      return res.status(200).json({
-        data: {
-          posts: [],
-          users: [],
-          convocatorias: []
-        }
-      });
-    }
-
-    const regex = new RegExp(q, 'i');
+    const regex = q ? new RegExp(q, 'i') : /.*/;
 
     // Buscar Usuarios (Perfiles)
     const users = await Usuario.find({
