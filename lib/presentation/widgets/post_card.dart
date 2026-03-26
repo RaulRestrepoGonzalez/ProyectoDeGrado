@@ -139,11 +139,25 @@ class _PostCardState extends State<PostCard> {
     final hasImage = evidencias.isNotEmpty && tipoEvidencia == 'IMAGEN';
     final hasVideo = evidencias.isNotEmpty && tipoEvidencia == 'VIDEO';
 
-    return SizedBox(
-      height: MediaQuery.of(context).size.height * 0.7, // Altura fija para feed estilo TikTok/Shorts
-      child: Stack(
-        fit: StackFit.expand,
-        children: [
+    return Container(
+      margin: const EdgeInsets.only(bottom: 24),
+      height: MediaQuery.of(context).size.height * 0.65, // Altura fija para feed estilo TikTok/Shorts
+      decoration: BoxDecoration(
+        color: Colors.black,
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.3),
+            blurRadius: 10,
+            offset: const Offset(0, 5),
+          ),
+        ],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(24),
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
           // 1. Background Media (Image, Video, or Audio placeholder)
           if (hasImage)
             Image.network(
@@ -222,12 +236,14 @@ class _PostCardState extends State<PostCard> {
             left: 0,
             right: 0,
             height: MediaQuery.of(context).size.height * 0.5,
-            child: Container(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [Colors.transparent, Colors.black.withOpacity(0.8)],
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
+            child: IgnorePointer(
+              child: Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [Colors.transparent, Colors.black.withOpacity(0.8)],
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                  ),
                 ),
               ),
             ),
@@ -391,7 +407,8 @@ class _PostCardState extends State<PostCard> {
               ],
             ),
           ),
-        ],
+          ],
+        ),
       ),
     );
   }
