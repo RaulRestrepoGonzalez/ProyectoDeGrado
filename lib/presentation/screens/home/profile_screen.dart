@@ -5,6 +5,7 @@ import '../../../core/constants/app_colors.dart';
 import '../../../core/services/auth_service.dart';
 import '../../../data/repositories/user_repository.dart';
 import '../../widgets/post_card.dart';
+import '../../widgets/video_player_widget.dart';
 
 class ProfileScreen extends StatefulWidget {
   final String? userId; 
@@ -295,15 +296,75 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
     if (posts.isEmpty) {
       return const Center(child: Text('Aún no hay publicaciones.', style: TextStyle(color: Colors.white54)));
     }
-    return ListView.builder(
-      padding: const EdgeInsets.only(top: 8, bottom: 80),
+    return GridView.builder(
+      padding: const EdgeInsets.only(top: 2, bottom: 80, left: 2, right: 2),
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 3,
+        crossAxisSpacing: 2,
+        mainAxisSpacing: 2,
+        childAspectRatio: 1, // Cuadrados tipo Instagram
+      ),
       itemCount: posts.length,
       itemBuilder: (context, index) {
-        return Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-          child: PostCard(
-            post: posts[index],
-            onRefresh: _loadProfileData,
+        final post = posts[index];
+        final List<dynamic> evidencias = post['evidencias'] ?? [];
+        final tipoEvidencia = post['tipoEvidencia'] ?? 'IMAGEN';
+        
+        Widget thumbnail;
+        
+        if (evidencias.isNotEmpty) {
+           if (tipoEvidencia == 'IMAGEN') {
+              thumbnail = Image.network(evidencias.first, fit: BoxFit.cover, errorBuilder: (_,__,___) => Container(color: Colors.grey.shade900));
+           } else if (tipoEvidencia == 'VIDEO') {
+              thumbnail = VideoPlayerWidget(url: evidencias.first, isThumbnail: true);
+           } else if (tipoEvidencia == 'AUDIO') {
+              thumbnail = Container(
+                 color: Colors.purple.shade900,
+                 child: const Center(child: Icon(Icons.audiotrack, color: Colors.white70)),
+              );
+           } else {
+              thumbnail = Container(color: Colors.grey.shade900);
+           }
+        } else {
+           thumbnail = Container(
+             color: Colors.grey.shade800,
+             padding: const EdgeInsets.all(4),
+             child: Center(
+               child: Text(
+                 post['contenido'] ?? '',
+                 style: const TextStyle(color: Colors.white70, fontSize: 10),
+                 textAlign: TextAlign.center,
+                 maxLines: 4,
+                 overflow: TextOverflow.ellipsis,
+               )
+             )
+           );
+        }
+
+        return GestureDetector(
+          onTap: () {
+            // Mostrar en pantalla completa al tocar
+            Navigator.of(context).push(MaterialPageRoute(
+               builder: (ctx) => Scaffold(
+                  appBar: AppBar(
+                     title: const Text('Publicación'), 
+                     backgroundColor: Colors.transparent, 
+                     elevation: 0,
+                  ),
+                  extendBodyBehindAppBar: true,
+                  backgroundColor: Colors.black,
+                  body: Center(
+                     child: PostCard(
+                        post: post,
+                        onRefresh: _loadProfileData,
+                     ),
+                  ),
+               )
+            ));
+          },
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(4),
+            child: thumbnail,
           ),
         );
       },

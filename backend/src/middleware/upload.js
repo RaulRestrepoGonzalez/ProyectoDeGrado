@@ -1,65 +1,26 @@
 const multer = require('multer');
-const { CloudinaryStorage } = require('multer-storage-cloudinary');
-const cloudinary = require('cloudinary').v2;
+const path = require('path');
+const fs = require('fs');
 
-// Configuración de Cloudinary (Usa credenciales del .env)
-const cloudName = process.env.CLOUDINARY_CLOUD_NAME;
-const cloudApiKey = process.env.CLOUDINARY_API_KEY;
-const cloudApiSecret = process.env.CLOUDINARY_API_SECRET;
-
-let cloudinaryConfigured = false;
-
-if (cloudName && cloudApiKey && cloudApiSecret) {
-  cloudinary.config({
-    cloud_name: cloudName,
-    api_key: cloudApiKey,
-    api_secret: cloudApiSecret,
-  });
-  cloudinaryConfigured = true;
-  console.log('☁️  Cloudinary configurado correctamente');
-} else {
-  console.warn('⚠️  Cloudinary NO configurado. Las subidas de archivos estarán deshabilitadas.');
-  console.warn('   Para habilitar: agrega CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY y CLOUDINARY_API_SECRET en backend/.env');
+// Ensure uploads directory exists (backend/uploads)
+const uploadPath = path.join(__dirname, '../../uploads');
+if (!fs.existsSync(uploadPath)) {
+  fs.mkdirSync(uploadPath, { recursive: true });
 }
 
-// Configuración de almacenamiento optimizada para diferentes tipos de archivos
-const storage = cloudinaryConfigured ? new CloudinaryStorage({
-  cloudinary: cloudinary,
-  params: async (req, file) => {
-    // Determinar el tipo de recurso basado en el archivo
-    let resourceType = 'image';
-    let folder = 'musicapp_valledupar/images';
-    
-    const fileExtension = file.originalname.toLowerCase().split('.').pop();
-    
-    if (['mp4', 'mov', 'avi', 'mkv', 'webm'].includes(fileExtension)) {
-      resourceType = 'video';
-      folder = 'musicapp_valledupar/videos';
-    } else if (['mp3', 'wav', 'aac', 'm4a', 'ogg', 'flac'].includes(fileExtension)) {
-      resourceType = 'video'; // Cloudinary trata los audios como video
-      folder = 'musicapp_valledupar/audios';
-    }
-
-    // Generar nombre de archivo único con timestamp y tipo
+// Configuración de almacenamiento local
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, uploadPath);
+  },
+  filename: (req, file, cb) => {
     const timestamp = Date.now();
     const originalName = file.originalname.split('.')[0].replace(/[^a-zA-Z0-9]/g, '_');
-    const uniqueFilename = `${timestamp}_${originalName}`;
-
-    return {
-      folder,
-      allowed_formats: ['jpg', 'jpeg', 'png', 'gif', 'webp', 'mp4', 'mov', 'avi', 'mkv', 'webm', 'mp3', 'wav', 'aac', 'm4a', 'ogg', 'flac'],
-      resource_type: resourceType,
-      public_id: uniqueFilename,
-      // Configuraciones específicas para cada tipo
-      transformation: resourceType === 'image' ? [
-        { width: 1200, height: 1200, crop: 'limit', quality: 'auto' },
-        { fetch_format: 'auto' }
-      ] : resourceType === 'video' ? [
-        { quality: 'auto' }
-      ] : [], // Para audios no aplicamos transformaciones
-    };
-  },
-}) : null;
+    const extension = file.originalname.split('.').pop();
+    const uniqueFilename = `${timestamp}_${originalName}.${extension}`;
+    cb(null, uniqueFilename);
+  }
+});
 
 // Middleware de upload con configuraciones mejoradas
 const upload = multer({ 
@@ -69,36 +30,14 @@ const upload = multer({
     files: 10 // Máximo 10 archivos (ajustable)
   },
   fileFilter: (req, file, cb) => {
-    // Si Cloudinary no está configurado, rechazar todas las subidas
-    if (!cloudinaryConfigured) {
-      return cb(new Error('Cloudinary no está configurado. Las subidas de archivos están deshabilitadas temporalmente.'), false);
-    }
-
     // Validar tipos de archivo permitidos
     const allowedTypes = [
       // Imágenes
-      'image/jpeg',
-      'image/jpg', 
-      'image/png',
-      'image/gif',
-      'image/webp',
-      'image/svg+xml',
+      'image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml',
       // Videos
-      'video/mp4',
-      'video/quicktime',
-      'video/x-msvideo',
-      'video/x-matroska',
-      'video/webm',
-      'video/3gpp',
-      'video/mpeg',
-      'video/x-flv',
+      'video/mp4', 'video/quicktime', 'video/x-msvideo', 'video/x-matroska', 'video/webm', 'video/3gpp', 'video/mpeg', 'video/x-flv',
       // Audios
-      'audio/mpeg',
-      'audio/wav',
-      'audio/aac',
-      'audio/mp4',
-      'audio/ogg',
-      'audio/flac'
+      'audio/mpeg', 'audio/wav', 'audio/aac', 'audio/mp4', 'audio/ogg', 'audio/flac'
     ];
 
     const fileExtension = file.originalname.toLowerCase().split('.').pop();
@@ -114,43 +53,36 @@ const upload = multer({
 
 // Middleware para procesar metadatos después de la subida
 const processUploadedFiles = (req, res, next) => {
-  // Si Cloudinary no está configurado, saltar procesamiento
-  if (!cloudinaryConfigured) {
-    return next();
+  const host = req.get('host');
+  // req.protocol puede ser http o HTTPS. Detrás de un proxy/Render usa https si X-Forwarded-Proto está configurado (app.set('trust proxy', 1) ya lo maneja)
+  const protocol = req.headers['x-forwarded-proto'] || req.protocol;
+
+  if (req.file) {
+    const filename = req.file.filename;
+    req.file.url = `${protocol}://${host}/uploads/${filename}`;
   }
 
-  if (!req.files || req.files.length === 0) {
-    return next();
+  if (req.files && req.files.length > 0) {
+    req.files = req.files.map((file, index) => {
+      const filename = file.filename;
+      const url = `${protocol}://${host}/uploads/${filename}`;
+      
+      return {
+        ...file,
+        url,
+        // Metadatos adicionales
+        public_id: filename,
+        size: file.size || 0,
+        // Orden en el array
+        order: index
+      };
+    });
   }
-
-  // Agregar metadatos adicionales a cada archivo
-  req.files = req.files.map((file, index) => {
-    // Extraer información del filename de Cloudinary
-    const filename = file.filename || file.public_id;
-    const parts = filename.split('/');
-    const nameWithExtension = parts[parts.length - 1];
-    
-    return {
-      ...file,
-      // Metadatos adicionales
-      filename: nameWithExtension,
-      public_id: file.public_id || nameWithExtension,
-      // Intentar extraer dimensiones para imágenes (si Cloudinary las proporciona)
-      width: file.width || null,
-      height: file.height || null,
-      duration: file.duration || null,
-      size: file.size || 0,
-      thumbnail: file.thumbnail || null,
-      // Orden en el array
-      order: index
-    };
-  });
 
   next();
 };
 
 module.exports = {
   upload,
-  processUploadedFiles,
-  isCloudinaryConfigured: () => cloudinaryConfigured
+  processUploadedFiles
 };

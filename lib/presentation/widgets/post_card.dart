@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../../../data/repositories/post_repository.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'audio_wave_painter.dart';
+import 'video_player_widget.dart';
 
 class PostCard extends StatefulWidget {
   final Map<String, dynamic> post;
@@ -135,7 +136,8 @@ class _PostCardState extends State<PostCard> {
       }
     }
 
-    final hasImage = evidencias.isNotEmpty && tipoEvidencia != 'AUDIO';
+    final hasImage = evidencias.isNotEmpty && tipoEvidencia == 'IMAGEN';
+    final hasVideo = evidencias.isNotEmpty && tipoEvidencia == 'VIDEO';
 
     return SizedBox(
       height: MediaQuery.of(context).size.height * 0.7, // Altura fija para feed estilo TikTok/Shorts
@@ -149,6 +151,8 @@ class _PostCardState extends State<PostCard> {
               fit: BoxFit.cover,
               errorBuilder: (_, __, ___) => Container(color: Colors.grey.shade900),
             )
+          else if (hasVideo)
+            VideoPlayerWidget(url: evidencias.first)
           else if (tipoEvidencia == 'AUDIO')
             Container(
               decoration: BoxDecoration(

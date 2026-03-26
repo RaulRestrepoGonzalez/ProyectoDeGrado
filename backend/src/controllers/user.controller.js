@@ -36,8 +36,10 @@ exports.obtenerPerfilUsuario = async (req, res, next) => {
     const formatearPublicacion = (pub) => {
       const hasLiked = pub.likes.some((uid) => uid.toString() === currentUserId.toString());
       const hasFavorited = pub.favoritos.some((uid) => uid.toString() === currentUserId.toString());
+      const evidenciasUrls = pub.evidencias ? pub.evidencias.map(e => e.url || e) : [];
       return {
         ...pub,
+        evidencias: evidenciasUrls,
         likesCount: pub.likes.length,
         comentariosCount: pub.comentarios.length,
         hasLiked,
@@ -126,9 +128,9 @@ exports.actualizarPerfilUsuario = async (req, res, next) => {
     if (rol) updates.rol = rol;
     if (telefono !== undefined) updates.telefono = telefono;
 
-    // Si Multer capturó una imagen (fotoPerfil), laURL está en req.file.path (Cloudinary)
+    // Si Multer capturó una imagen (fotoPerfil), laURL está en req.file.url
     if (req.file) {
-      updates.fotoPerfil = req.file.path;
+      updates.fotoPerfil = req.file.url;
     }
 
     const usuario = await Usuario.findByIdAndUpdate(

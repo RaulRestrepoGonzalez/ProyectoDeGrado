@@ -19,7 +19,7 @@ app.use(
         defaultSrc: ["'self'"],
         scriptSrc: ["'self'"],
         styleSrc: ["'self'", "'unsafe-inline'"],
-        imgSrc: ["'self'", 'data:', 'res.cloudinary.com'],
+        imgSrc: ["'self'", 'data:', 'blob:', 'http:', 'https:'],
         connectSrc: ["'self'"],
         fontSrc: ["'self'"],
         objectSrc: ["'none'"],
@@ -55,6 +55,10 @@ app.use(xss());
 
 // Confía en el proxy (para ejecución en nube / contenedores behind proxy)
 app.set('trust proxy', 1);
+
+const path = require('path');
+// Servir directorio static de uploads
+app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
 if (process.env.NODE_ENV !== 'production') {
   app.use(morgan('dev'));

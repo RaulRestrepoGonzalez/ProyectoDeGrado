@@ -57,19 +57,19 @@ exports.crearPublicacion = async (req, res, next) => {
           }
         }
 
-        // Crear objeto de evidencia con metadatos completos
+        // Crear objeto de evidencia con metadatos base
         const evidencia = {
-          url: file.path, // URL de Cloudinary
+          url: file.url, // URL del servidor local
           tipo: tipoArchivo,
           nombreOriginal: file.originalname,
           tamaño: file.size || 0,
           formato: fileExtension,
-          duracion: file.duration || null,
+          duracion: null, // No extraído en local
           dimensiones: {
-            ancho: file.width || null,
-            alto: file.height || null,
+            ancho: null,
+            alto: null,
           },
-          thumbnail: file.thumbnail || null,
+          thumbnail: null,
           publicId: file.public_id || file.filename,
           orden: evidencias.length,
         };
@@ -178,6 +178,7 @@ exports.obtenerDetallePublicacion = async (req, res, next) => {
       status: 'success',
       data: {
         ...publicacion,
+        evidencias: publicacion.evidencias ? publicacion.evidencias.map(e => e.url || e) : [],
         likesCount: publicacion.likes.length,
         comentariosCount: publicacion.comentarios.length,
         hasLiked,
@@ -368,12 +369,20 @@ exports.buscarPorTipo = async (req, res, next) => {
       bloqueadaPor: { $ne: userId }
     })
     .sort({ createdAt: -1 })
-    .populate('autor', 'nombre rol email');
+    .populate('autor', 'nombre rol email')
+    .lean();
+
+    const feedFormateado = publicaciones.map(pub => {
+      return {
+        ...pub,
+        evidencias: pub.evidencias ? pub.evidencias.map(e => e.url || e) : [],
+      };
+    });
 
     res.status(200).json({
       status: 'success',
       results: publicaciones.length,
-      data: publicaciones
+      data: feedFormateado
     });
   } catch (error) {
     next(error);
@@ -390,12 +399,20 @@ exports.buscarConMultimedia = async (req, res, next) => {
       bloqueadaPor: { $ne: userId }
     })
     .sort({ createdAt: -1 })
-    .populate('autor', 'nombre rol email');
+    .populate('autor', 'nombre rol email')
+    .lean();
+
+    const feedFormateado = publicaciones.map(pub => {
+      return {
+        ...pub,
+        evidencias: pub.evidencias ? pub.evidencias.map(e => e.url || e) : [],
+      };
+    });
 
     res.status(200).json({
       status: 'success',
       results: publicaciones.length,
-      data: publicaciones
+      data: feedFormateado
     });
   } catch (error) {
     next(error);

@@ -36,7 +36,7 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
     super.dispose();
   }
 
-  Future<void> _pickImage() async {
+  Future<void> _pickMedia() async {
     if ((_evidencias.length + _audios.length) >= 5) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Máximo 5 archivos permitidos.')),
@@ -44,10 +44,10 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
       return;
     }
 
-    final XFile? image = await _imagePicker.pickImage(source: ImageSource.gallery);
-    if (image != null) {
+    final XFile? media = await _imagePicker.pickMedia();
+    if (media != null) {
       setState(() {
-        _evidencias.add(File(image.path));
+        _evidencias.add(File(media.path));
       });
     }
   }
@@ -442,7 +442,7 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
                         if ((_evidencias.length + _audios.length) < 5) ...[
                           // Botón para imágenes/videos
                           GestureDetector(
-                            onTap: _pickImage,
+                            onTap: _pickMedia,
                             child: Container(
                               width: 100,
                               height: 100,
@@ -452,7 +452,7 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
                                 color: AppColors.surface,
                               ),
                               child: const Icon(
-                                Icons.add_a_photo,
+                                Icons.perm_media,
                                 size: 40,
                                 color: AppColors.textSecondary,
                               ),

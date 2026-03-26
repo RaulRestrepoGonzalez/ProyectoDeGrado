@@ -8,6 +8,6 @@
         <!-- Agregar aquí IP local (Ej. 192.168.0.x) si lo pruebas en tu smartphone físico conectado al WiFi -->
     </domain-config>
 
-    <!-- La política base para producción será siempre HTTPS estricto -->
-    <base-config cleartextTrafficPermitted="false" />
+    <!-- Permitimos cleartext traffic globalmente durante desarrollo para que IPs como 192.168.X.X no sean bloqueadas accidentalmente -->
+    <base-config cleartextTrafficPermitted="true" />
 </network-security-config>
