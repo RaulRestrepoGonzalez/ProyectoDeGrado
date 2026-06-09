@@ -14,7 +14,7 @@ const optionalEnvVars = {
   'CLIENT_ORIGIN': '*',
   'SOCKET_PORT': 4000,
   'SOCKET_PATH': '/socket.io',
-  'MONGODB_URI': 'mongodb://localhost:27017/musicapp_valledupar',
+  'MONGODB_URI': 'mongodb+srv://rv982120_db_user:EZkpo8qTwj0kPCXH@clusterproyectogrado.lwuqy8r.mongodb.net/soundupar_db?retryWrites=true&w=majority',
   'ENABLE_HTTPS': 'false',
   'FORCE_INSECURE': 'false',
   'LOG_LEVEL': 'info',
