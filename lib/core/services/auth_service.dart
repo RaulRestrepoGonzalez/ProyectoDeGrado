@@ -18,7 +18,9 @@ class AuthService {
   final FlutterSecureStorage _storage = const FlutterSecureStorage();
 
   final ValueNotifier<bool> isAuthenticated = ValueNotifier(false);
-  final ValueNotifier<String> authStateMessage = ValueNotifier('Verificando sesión...');
+  final ValueNotifier<String> authStateMessage = ValueNotifier(
+    'Verificando sesión...',
+  );
 
   String? _cachedToken;
 
@@ -84,7 +86,9 @@ class AuthService {
     }
 
     try {
-      final baseUrl = dotenv.env['BASE_URL'] ?? 'http://10.0.2.2:3000/api';
+      final baseUrl =
+          dotenv.env['BASE_URL'] ??
+          'https://proyectodegrado-90yf.onrender.com/api';
       final dio = Dio(BaseOptions(baseUrl: baseUrl));
       final res = await dio.post(
         '/auth/refresh',
@@ -121,7 +125,7 @@ class AuthService {
   Future<void> saveTokens(String accessToken, String refreshToken) async {
     _cachedToken = accessToken;
     isAuthenticated.value = true;
-    
+
     await _writeToStorage(_tokenKey, accessToken);
     await _writeToStorage(_refreshTokenKey, refreshToken);
   }
@@ -139,7 +143,9 @@ class AuthService {
     // Attempt backend logout if we have a token
     try {
       if (_cachedToken != null) {
-        final baseUrl = dotenv.env['BASE_URL'] ?? 'http://10.0.2.2:3000/api';
+        final baseUrl =
+            dotenv.env['BASE_URL'] ??
+            'https://proyectodegrado-90yf.onrender.com/api';
         final dio = Dio(BaseOptions(baseUrl: baseUrl));
         await dio.post(
           '/auth/logout',
@@ -150,7 +156,7 @@ class AuthService {
 
     _cachedToken = null;
     isAuthenticated.value = false;
-    
+
     await _deleteFromStorage(_tokenKey);
     await _deleteFromStorage(_refreshTokenKey);
   }
