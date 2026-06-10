@@ -9,75 +9,71 @@ class ApiClient {
 
   static Dio create() {
     String? envBase;
+
     try {
       envBase = dotenv.env['BASE_URL'];
     } catch (_) {
-      envBase =
-          null; // dotenv not initialized (tests), will fallback to defaults
+      envBase = null;
     }
-    final baseUrl =
-        envBase ?? 'http://192.168.1.9:3000/api'; // IP local por defecto
 
-    // Si no hay BASE_URL en .env, lanzamos la resolución en background
+    final baseUrl = envBase ?? 'https://proyectodegrado-90yf.onrender.com/api';
+
+    final dio = Dio(
+      BaseOptions(
+        baseUrl: baseUrl,
+        connectTimeout: const Duration(seconds: 15),
+        receiveTimeout: const Duration(seconds: 15),
+        headers: {'Content-Type': 'application/json'},
+      ),
+    );
+
+    // Resolver URL automáticamente si no existe en .env
     if (envBase == null || envBase.isEmpty) {
-      // Evitar ejecutar resolveBaseUrl durante tests si dotenv no está inicializado.
       resolveBaseUrl()
           .then((resolved) {
             if (resolved != null && resolved.isNotEmpty) {
+              dio.options.baseUrl = resolved;
+
               try {
                 dotenv.env['BASE_URL'] = resolved;
-              } catch (_) {
-                // ignore: dotenv not initialized in test environment
-              }
+              } catch (_) {}
             }
           })
           .catchError((_) {});
     }
 
-    final dio = Dio(
-      BaseOptions(
-        baseUrl: baseUrl,
-        connectTimeout: const Duration(seconds: 10),
-        receiveTimeout: const Duration(seconds: 10),
-        headers: {'Content-Type': 'application/json'},
-      ),
-    );
-
     dio.interceptors.add(
       InterceptorsWrapper(
         onRequest: (options, handler) async {
           final token = await AuthService.instance.getToken();
+
           if (token != null && token.isNotEmpty) {
             options.headers['Authorization'] = 'Bearer $token';
           }
+
           handler.next(options);
         },
         onError: (e, handler) async {
-          // Si la petición falla por conexión (socket/resolve), intentar resolver BASE_URL y reintentar una vez
           final isNetworkError =
-              (e.type == DioExceptionType.connectionError ||
+              e.type == DioExceptionType.connectionError ||
               e.type == DioExceptionType.connectionTimeout ||
-              e.type == DioExceptionType.unknown);
+              e.type == DioExceptionType.unknown;
+
           if (isNetworkError) {
             try {
               final resolved = await resolveBaseUrl();
+
               if (resolved != null &&
                   resolved.isNotEmpty &&
-                  dio.options.baseUrl != resolved) {
+                  resolved != dio.options.baseUrl) {
                 dio.options.baseUrl = resolved;
-                // reconstruir la petición original y reintentar
-                final opts = e.requestOptions;
-                try {
-                  final response = await dio.fetch(opts);
-                  return handler.resolve(response);
-                } catch (e2) {
-                  return handler.next(e);
-                }
+
+                final response = await dio.fetch(e.requestOptions);
+                return handler.resolve(response);
               }
-            } catch (_) {
-              // ignore and forward original error
-            }
+            } catch (_) {}
           }
+
           handler.next(e);
         },
       ),

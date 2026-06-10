@@ -14,7 +14,7 @@ const optionalEnvVars = {
   'CLIENT_ORIGIN': '*',
   'SOCKET_PORT': 4000,
   'SOCKET_PATH': '/socket.io',
-  'MONGODB_URI': 'mongodb+srv://rv982120_db_user:EZkpo8qTwj0kPCXH@clusterproyectogrado.lwuqy8r.mongodb.net/soundupar_db?retryWrites=true&w=majority',
+  'MONGODB_URI': process.env.MONGODB_URI,
   'ENABLE_HTTPS': 'false',
   'FORCE_INSECURE': 'false',
   'LOG_LEVEL': 'info',
@@ -80,8 +80,8 @@ function getNetworkConfig() {
   
   if (detected.isDocker) {
     host = '0.0.0.0'; // En Docker siempre escuchar en todas las interfaces
-  } else if (detected.isProduction && !detected.isCloud) {
-    host = ips[0] || '0.0.0.0'; // En producción local, usar la primera IP disponible
+  } else if (detected.isProduction) {
+    host = '0.0.0.0'; // En producción local, usar las IP disponibles
   } else if (detected.isDevelopment) {
     host = '0.0.0.0'; // En desarrollo, permitir conexiones de cualquier lugar
   }
@@ -201,18 +201,12 @@ function validateEnv() {
   }
 
   // Validar conexión a MongoDB antes de continuar
-  console.log('🔍 Probando conexión a MongoDB...');
-  const mongoose = require('mongoose');
-  mongoose.connect(process.env.MONGODB_URI, {
-    serverSelectionTimeoutMS: 5000, // Timeout de 5 segundos
-  }).then(() => {
-    console.log('✅ Conexión a MongoDB exitosa');
-    return mongoose.connection.close();
-  }).catch((error) => {
-    console.warn('⚠️  No se pudo conectar a MongoDB:', error.message);
-    console.warn('   El servidor intentará reconectar automáticamente al iniciar');
-    console.warn('   Asegúrate de que MongoDB esté ejecutándose');
-  });
+  // Verificar configuración de MongoDB
+  if (process.env.MONGODB_URI) {
+    console.log('✅ MONGODB_URI configurada');
+} else {
+    console.warn('⚠️ No se encontró MONGODB_URI');
+}
   
   // Validar variables obligatorias para producción
   if (detected.isProduction) {

@@ -1,0 +1,161 @@
+.
+├── railway.toml
+├── .gitignore
+├── musicapp_valledupar.iml
+├── analysis_options.yaml
+├── .env.render
+├── .env.example
+├── DEPLOYMENT.md
+├── README.md
+├── SIGNING_GUIDE.md
+├── build_apk.bat
+├── backup.bat
+├── check_posts.js
+├── deploy.sh
+├── iniciar.bat
+├── monitor.bat
+├── start_dev.bat
+├── start_dev.sh
+├── pubspec.yaml
+├── install_log.txt
+├── query
+├── Para
+├── assets
+│   ├── fonts
+│   │   ├── Poppins-Bold.ttf
+│   │   ├── Poppins-Medium.ttf
+│   │   ├── Poppins-Regular.ttf
+│   │   └── Poppins-SemiBold.ttf
+│   ├── icons
+│   │   ├── logo.jpg
+│   │   ├── logo_transparent.png
+│   │   ├── ic_launcher_foreground.png
+│   │   └── .gitkeep
+│   └── images
+│       └── .gitkeep
+├── lib
+│   ├── main.dart
+│   ├── core
+│   │   ├── services
+│   │   │   └── auth_service.dart
+│   │   └── network
+│   │       ├── api_client.dart
+│   │       └── base_url_resolver.dart
+│   ├── data
+│   │   └── repositories
+│   │       ├── auth_repository.dart
+│   │       ├── post_repository.dart
+│   │       ├── search_repository.dart
+│   │       ├── user_repository.dart
+│   │       └── wallet_repository.dart
+│   └── presentation
+│       ├── router
+│       │   └── app_router.dart
+│       ├── theme
+│       │   └── app_theme.dart
+│       ├── widgets
+│       │   ├── audio_recorder_widget.dart
+│       │   ├── audio_wave_painter.dart
+│       │   ├── post_card.dart
+│       │   └── video_player_widget.dart
+│       └── screens
+│           ├── auth
+│           │   └── auth_screen.dart
+│           ├── home
+│           │   ├── home_screen.dart
+│           │   ├── feed_screen.dart
+│           │   ├── profile_screen.dart
+│           │   ├── edit_profile_screen.dart
+│           │   └── search_screen.dart
+│           ├── post
+│           │   ├── create_post_screen.dart
+│           │   └── post_detail_screen.dart
+│           ├── splash
+│           │   └── splash_screen.dart
+│           └── wallet
+│               └── wallet_screen.dart
+├── android
+│   ├── build.gradle.kts
+│   ├── settings.gradle.kts
+│   ├── gradle.properties
+│   ├── key.properties.sample
+│   └── app
+│       └── src
+│           └── main
+│               ├── AndroidManifest.xml
+│               └── res
+│                   ├── drawable-*
+│                   └── mipmap-*
+├── ios
+│   └── Runner (Xcode project files, Info.plist, storyboards, etc.)
+├── macos
+│   └── Runner (Xcode project, Assets, Configs)
+├── linux
+│   └── runner (CMakeLists, main.cc, etc.)
+├── windows
+│   ├── runner
+│   │   ├── flutter_window.h/.cpp
+│   │   ├── win32_window.h/.cpp
+│   │   ├── utils.h/.cpp
+│   │   ├── resources (app_icon.ico)
+│   │   └── CMakeLists.txt
+│   └── flutter (generated plugin files)
+├── web
+│   ├── index.html
+│   ├── manifest.json
+│   └── icons (Icon-192.png, Icon-512.png, maskable, favicon)
+├── backend
+│   ├── package.json
+│   ├── package-lock.json
+│   ├── Dockerfile
+│   ├── README.md
+│   ├── pubspec.yaml
+│   ├── backend.iml
+│   ├── .env.example
+│   ├── .gitignore
+│   ├── lib (Flutter embedding files for backend subproject)
+│   ├── android/ios/macos (platform runner files for backend)
+│   ├── src
+│   │   ├── app.js
+│   │   ├── server.js
+│   │   ├── config
+│   │   │   ├── env.js
+│   │   │   ├── env.js.backup
+│   │   │   ├── database.js
+│   │   │   └── socket.js
+│   │   ├── routes
+│   │   │   ├── index.js
+│   │   │   ├── auth.routes.js
+│   │   │   ├── post.routes.js
+│   │   │   ├── user.routes.js
+│   │   │   ├── search.routes.js
+│   │   │   └── wallet.routes.js
+│   │   ├── controllers
+│   │   │   ├── auth.controller.js
+│   │   │   ├── post.controller.js
+│   │   │   ├── user.controller.js
+│   │   │   ├── search.controller.js
+│   │   │   └── wallet.controller.js
+│   │   ├── models
+│   │   │   ├── Usuario.js
+│   │   │   ├── Publicacion.js
+│   │   │   ├── Denuncia.js
+│   │   │   └── Comentario.js
+│   │   ├── middleware
+│   │   │   ├── auth.js
+│   │   │   ├── errorHandler.js
+│   │   │   ├── upload.js
+│   │   │   └── validateRequest.js
+│   │   └── migrations
+│   │       └── migratePublicaciones.js
+│   ├── uploads
+│   │   ├── *.jpg
+│   │   └── *.mp4
+│   └── coverage
+│       └── lcov-report/...
+├── backend/test (auth.test.js, security.test.js, performance.test.js, etc.)
+├── backend/coverage (lcov, reports)
+├── test
+│   ├── widget_test.dart
+│   └── persisted_session_test.dart
+└── ESTRUCTURA_PROYECTO.txt (this file)

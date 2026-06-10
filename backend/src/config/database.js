@@ -10,16 +10,22 @@ const DEFAULT_DB_NAME = 'musicapp_valledupar';
 
 const buildCandidates = () => {
   const candidates = [];
+
+  // Prioridad absoluta a la URI configurada
   if (process.env.MONGODB_URI) {
     candidates.push(process.env.MONGODB_URI);
   }
 
-  // Support MONGO_HOSTS env var (comma separated list) or single MONGO_HOST
+  // Hosts alternativos opcionales
   const hostsEnv = process.env.MONGO_HOSTS || process.env.MONGO_HOST;
+
   if (hostsEnv) {
-    const hosts = hostsEnv.split(',').map(h => h.trim()).filter(Boolean);
+    const hosts = hostsEnv
+      .split(',')
+      .map(h => h.trim())
+      .filter(Boolean);
+
     for (const h of hosts) {
-      // Allow host:port or just host
       if (h.includes('/')) {
         candidates.push(h);
       } else {
@@ -27,10 +33,6 @@ const buildCandidates = () => {
       }
     }
   }
-
-  // Common fallbacks
-  candidates.push(`mongodb://localhost:27017/${DEFAULT_DB_NAME}`);
-  candidates.push(`mongodb://127.0.0.1:27017/${DEFAULT_DB_NAME}`);
 
   return Array.from(new Set(candidates));
 };
@@ -60,7 +62,7 @@ const connectDB = async () => {
   for (let i = 0; i < candidates.length; i++) {
     const uri = candidates[i];
     let attempt = 0;
-    const maxAttempts = 6; // Aumentado a 6 intentos
+    const maxAttempts = 2; // Aumentado a 2 intentos
     
     while (attempt < maxAttempts) {
       try {
@@ -151,7 +153,7 @@ const connectDB = async () => {
   }
   
   // En producción, salir
-  process.exit(1);
+  throw new Error('No fue posible conectar con MongoDB');
 };
 
 module.exports = { connectDB };
