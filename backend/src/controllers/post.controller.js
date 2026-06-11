@@ -205,7 +205,9 @@ exports.toggleLike = async (req, res, next) => {
       return res.status(404).json({ message: 'Publicación no encontrada' });
     }
 
-    const index = publicacion.likes.indexOf(userId);
+    const index = publicacion.likes.findIndex(
+      (uid) => uid.toString() === userId.toString(),
+    );
     let hasLiked = false;
 
     if (index === -1) {
@@ -238,7 +240,9 @@ exports.toggleFavorito = async (req, res, next) => {
       return res.status(404).json({ message: 'Publicación no encontrada' });
     }
 
-    const index = publicacion.favoritos.indexOf(userId);
+    const index = publicacion.favoritos.findIndex(
+      (uid) => uid.toString() === userId.toString(),
+    );
     let hasFavorited = false;
 
     if (index === -1) {

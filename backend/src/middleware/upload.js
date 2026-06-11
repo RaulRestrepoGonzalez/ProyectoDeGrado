@@ -54,32 +54,73 @@ const upload = multer({
 // Middleware para procesar metadatos después de la subida
 const processUploadedFiles = (req, res, next) => {
   const host = req.get('host');
-  // req.protocol puede ser http o HTTPS. Detrás de un proxy/Render usa https si X-Forwarded-Proto está configurado (app.set('trust proxy', 1) ya lo maneja)
   const protocol = req.headers['x-forwarded-proto'] || req.protocol;
 
-  if (req.file) {
-    const filename = req.file.filename;
-    req.file.url = `${protocol}://${host}/uploads/${filename}`;
-  }
+  const validateFile = (file) => {
+    if (!file || !file.filename || !file.originalname || !file.path) {
+      throw new Error('Archivo subido inválido.');
+    }
 
-  if (req.files && req.files.length > 0) {
-    req.files = req.files.map((file, index) => {
-      const filename = file.filename;
-      const url = `${protocol}://${host}/uploads/${filename}`;
-      
-      return {
-        ...file,
-        url,
-        // Metadatos adicionales
-        public_id: filename,
-        size: file.size || 0,
-        // Orden en el array
-        order: index
-      };
+    if (!fs.existsSync(file.path)) {
+      throw new Error('El archivo subido no existe en el servidor.');
+    }
+
+    if (file.size === undefined || file.size === null || file.size <= 0) {
+      throw new Error('El archivo subido está vacío o no se ha recibido correctamente.');
+    }
+
+    const extension = file.originalname.toLowerCase().split('.').pop();
+    const videoExtensions = ['mp4', 'mov', 'avi', 'mkv', 'webm', '3gp', 'mpeg', 'flv'];
+
+    if (file.mimetype && file.mimetype.startsWith('video/') && !videoExtensions.includes(extension)) {
+      throw new Error(`Formato de video no válido: .${extension}`);
+    }
+  };
+
+  try {
+    if (req.file) {
+      validateFile(req.file);
+      const filename = req.file.filename;
+      req.file.url = `${protocol}://${host}/uploads/${filename}`;
+    }
+
+    if (req.files && req.files.length > 0) {
+      req.files = req.files.map((file, index) => {
+        validateFile(file);
+
+        const filename = file.filename;
+        const url = `${protocol}://${host}/uploads/${filename}`;
+
+        return {
+          ...file,
+          url,
+          public_id: filename,
+          size: file.size || 0,
+          order: index,
+        };
+      });
+    }
+
+    next();
+  } catch (error) {
+    // Eliminar archivos temporales si hubo un problema de validación
+    if (req.files && Array.isArray(req.files)) {
+      req.files.forEach((file) => {
+        if (file && file.path && fs.existsSync(file.path)) {
+          fs.unlinkSync(file.path);
+        }
+      });
+    }
+
+    if (req.file && req.file.path && fs.existsSync(req.file.path)) {
+      fs.unlinkSync(req.file.path);
+    }
+
+    res.status(400).json({
+      status: 'error',
+      message: error.message || 'Error al validar el archivo subido.',
     });
   }
-
-  next();
 };
 
 module.exports = {

@@ -152,7 +152,8 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
   Widget build(BuildContext context) {
     final showVacantesPrecio =
         _tipoPost == 'BUSCANDO_PERSONAL' || _tipoPost == 'BUSCANDO_OPORTUNIDAD';
-    final showEvidencias = _tipoPost == 'BUSCANDO_OPORTUNIDAD' || _tipoPost == 'GENERAL';
+    final showEvidencias =
+        _tipoPost == 'BUSCANDO_OPORTUNIDAD' || _tipoPost == 'GENERAL';
 
     return Scaffold(
       appBar: AppBar(
@@ -199,7 +200,8 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
                             _vacantesController.clear();
                             _precioController.clear();
                           }
-                          if (_tipoPost != 'BUSCANDO_OPORTUNIDAD' && _tipoPost != 'GENERAL') {
+                          if (_tipoPost != 'BUSCANDO_OPORTUNIDAD' &&
+                              _tipoPost != 'GENERAL') {
                             _evidencias.clear();
                           }
                         });
@@ -224,7 +226,6 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
                       onChanged: (_) => setState(() {}),
                     ),
                   ),
-
 
                   // 3. Vacantes y Precio
                   if (showVacantesPrecio) ...[
@@ -282,17 +283,19 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
                         // Mostrar imágenes/videos
                         ...List.generate(_evidencias.length, (index) {
                           final file = _evidencias[index];
-                          final isImage = file.path.toLowerCase().endsWith('.jpg') ||
-                                    file.path.toLowerCase().endsWith('.jpeg') ||
-                                    file.path.toLowerCase().endsWith('.png') ||
-                                    file.path.toLowerCase().endsWith('.gif') ||
-                                    file.path.toLowerCase().endsWith('.webp');
-                          final isVideo = file.path.toLowerCase().endsWith('.mp4') ||
-                                    file.path.toLowerCase().endsWith('.mov') ||
-                                    file.path.toLowerCase().endsWith('.avi') ||
-                                    file.path.toLowerCase().endsWith('.mkv') ||
-                                    file.path.toLowerCase().endsWith('.webm');
-                          
+                          final isImage =
+                              file.path.toLowerCase().endsWith('.jpg') ||
+                              file.path.toLowerCase().endsWith('.jpeg') ||
+                              file.path.toLowerCase().endsWith('.png') ||
+                              file.path.toLowerCase().endsWith('.gif') ||
+                              file.path.toLowerCase().endsWith('.webp');
+                          final isVideo =
+                              file.path.toLowerCase().endsWith('.mp4') ||
+                              file.path.toLowerCase().endsWith('.mov') ||
+                              file.path.toLowerCase().endsWith('.avi') ||
+                              file.path.toLowerCase().endsWith('.mkv') ||
+                              file.path.toLowerCase().endsWith('.webm');
+
                           return Stack(
                             children: [
                               Container(
@@ -337,8 +340,7 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
                             ],
                           );
                         }),
-                        
-                        
+
                         // Botones para agregar más archivos
                         if (_evidencias.length < 5) ...[
                           // Botón para imágenes/videos
@@ -367,7 +369,7 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
               ),
             ),
           ),
-          
+
           // Barra inferior fija con el botón de Publicar
           Container(
             padding: const EdgeInsets.all(16.0),
@@ -381,12 +383,13 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
               child: SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
-                  onPressed: _isLoading || _contentController.text.trim().isEmpty
-                          ? null
-                          : _submitPost,
+                  onPressed:
+                      _isLoading || _contentController.text.trim().isEmpty
+                      ? null
+                      : _submitPost,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: _isLoading 
-                        ? Colors.grey.shade600 
+                    backgroundColor: _isLoading
+                        ? Colors.grey.shade600
                         : AppColors.accent,
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(vertical: 16),

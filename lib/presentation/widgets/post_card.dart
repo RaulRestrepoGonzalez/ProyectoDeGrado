@@ -53,6 +53,7 @@ class _PostCardState extends State<PostCard> {
           _hasLiked = res['hasLiked'];
           _likesCount = res['likesCount'];
         });
+        widget.onRefresh();
       }
     } catch (e) {
       if (mounted) {
