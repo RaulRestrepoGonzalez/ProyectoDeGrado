@@ -29,14 +29,15 @@ class _VideoPlayerWidgetState extends State<VideoPlayerWidget> {
 
     _controller = VideoPlayerController.networkUrl(Uri.parse(finalUrl))
       ..initialize().then((_) {
-        // Ensure the first frame is shown after the video is initialized
         if (mounted) {
           setState(() {});
           _controller.setLooping(true);
           if (widget.isThumbnail) {
             _controller.setVolume(0.0); // Mute for thumbnails
+            _controller.pause();
+          } else {
+            _controller.play(); // Autoplay for inline video playback
           }
-          _controller.play(); // Autoplay
         }
       }).catchError((error) {
         if (mounted) {

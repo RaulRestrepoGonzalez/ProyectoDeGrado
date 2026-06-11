@@ -119,6 +119,7 @@ exports.obtenerFeed = async (req, res, next) => {
 
     // Obtener publicaciones excluyendo las que el usuario solicitante haya bloqueado
     const publicaciones = await Publicacion.find({
+      estado: 'ACTIVA',
       bloqueadaPor: { $ne: userId },
     })
       .sort({ createdAt: -1 })
@@ -167,7 +168,7 @@ exports.obtenerDetallePublicacion = async (req, res, next) => {
       })
       .lean();
 
-    if (!publicacion) {
+    if (!publicacion || publicacion.estado !== 'ACTIVA') {
       return res.status(404).json({ message: 'Publicación no encontrada' });
     }
 
@@ -348,6 +349,32 @@ exports.denunciarPublicacion = async (req, res, next) => {
     res.status(201).json({
       status: 'success',
       message: 'Denuncia enviada y registrada correctamente.',
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+exports.eliminarPublicacion = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const userId = req.user.id;
+
+    const publicacion = await Publicacion.findById(id);
+    if (!publicacion || publicacion.estado !== 'ACTIVA') {
+      return res.status(404).json({ message: 'Publicación no encontrada' });
+    }
+
+    if (publicacion.autor.toString() !== userId.toString()) {
+      return res.status(403).json({ message: 'No tienes permisos para eliminar esta publicación.' });
+    }
+
+    publicacion.estado = 'ELIMINADA';
+    await publicacion.save();
+
+    res.status(200).json({
+      status: 'success',
+      message: 'Publicación eliminada exitosamente.',
     });
   } catch (error) {
     next(error);

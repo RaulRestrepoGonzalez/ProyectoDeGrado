@@ -18,6 +18,7 @@ exports.obtenerPerfilUsuario = async (req, res, next) => {
     // 1. Pestaña "Publicaciones" (Posts del autor)
     const publicaciones = await Publicacion.find({
       autor: id,
+      estado: 'ACTIVA',
       bloqueadaPor: { $ne: currentUserId },
     })
       .sort({ createdAt: -1 })
@@ -27,6 +28,7 @@ exports.obtenerPerfilUsuario = async (req, res, next) => {
     // 2. Pestaña "Me Gusta" (Posts que le gustan al autor del perfil)
     const publicacionesGustadas = await Publicacion.find({
       likes: id,
+      estado: 'ACTIVA',
       bloqueadaPor: { $ne: currentUserId },
     })
       .sort({ createdAt: -1 })

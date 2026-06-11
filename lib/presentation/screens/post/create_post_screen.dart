@@ -2,11 +2,9 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:file_picker/file_picker.dart';
 
 import '../../../core/constants/app_colors.dart';
 import '../../../data/repositories/post_repository.dart';
-import '../../widgets/audio_recorder_widget.dart';
 
 class CreatePostScreen extends StatefulWidget {
   const CreatePostScreen({super.key});
@@ -24,7 +22,6 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
   bool _isLoading = false;
   String _tipoPost = 'GENERAL';
   final List<File> _evidencias = [];
-  final List<File> _audios = [];
 
   final ImagePicker _imagePicker = ImagePicker();
 
@@ -37,7 +34,7 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
   }
 
   Future<void> _pickMedia() async {
-    if ((_evidencias.length + _audios.length) >= 5) {
+    if (_evidencias.length >= 5) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Máximo 5 archivos permitidos.')),
       );
@@ -52,40 +49,9 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
     }
   }
 
-  Future<void> _pickAudio() async {
-    if ((_evidencias.length + _audios.length) >= 5) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Máximo 5 archivos permitidos.')),
-      );
-      return;
-    }
-
-    try {
-      final result = await FilePicker.platform.pickFiles(
-        type: FileType.audio,
-        allowMultiple: false,
-      );
-
-      if (result != null && result.files.isNotEmpty) {
-        final file = File(result.files.single.path!);
-        setState(() {
-          _audios.add(file);
-        });
-      }
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error al seleccionar audio: ${e.toString()}')),
-      );
-    }
-  }
-
-  void _removeFile(int index, {bool isAudio = false}) {
+  void _removeFile(int index) {
     setState(() {
-      if (isAudio) {
-        _audios.removeAt(index);
-      } else {
-        _evidencias.removeAt(index);
-      }
+      _evidencias.removeAt(index);
     });
   }
 
@@ -146,10 +112,7 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
     try {
       int? vacantes = int.tryParse(_vacantesController.text.trim());
       double? precio = double.tryParse(_precioController.text.trim());
-      
-      // Combinar imágenes/videos y audios
-      final allFiles = [..._evidencias, ..._audios];
-      final paths = allFiles.map((f) => f.path).toList();
+      final paths = _evidencias.map((f) => f.path).toList();
 
       await _repository.createPost(
         contenido: content,
@@ -190,7 +153,6 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
     final showVacantesPrecio =
         _tipoPost == 'BUSCANDO_PERSONAL' || _tipoPost == 'BUSCANDO_OPORTUNIDAD';
     final showEvidencias = _tipoPost == 'BUSCANDO_OPORTUNIDAD' || _tipoPost == 'GENERAL';
-    final showAudioRecorder = _tipoPost == 'GENERAL'; // Solo para posts generales
 
     return Scaffold(
       appBar: AppBar(
@@ -239,7 +201,6 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
                           }
                           if (_tipoPost != 'BUSCANDO_OPORTUNIDAD' && _tipoPost != 'GENERAL') {
                             _evidencias.clear();
-                            _audios.clear();
                           }
                         });
                       }
@@ -264,18 +225,6 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
                     ),
                   ),
 
-                  // 2.5. Audio Recorder (solo para posts generales)
-                  if (showAudioRecorder) ...[
-                    const SizedBox(height: 24),
-                    AudioRecorderWidget(
-                      maxDuration: 60,
-                      onAudioRecorded: (audioFile) {
-                        setState(() {
-                          _audios.add(audioFile);
-                        });
-                      },
-                    ),
-                  ],
 
                   // 3. Vacantes y Precio
                   if (showVacantesPrecio) ...[
@@ -315,11 +264,11 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
                     ),
                   ],
 
-                  // 4. Evidencias (Imágenes, Videos y Audios)
+                  // 4. Evidencias (Imágenes y Videos)
                   if (showEvidencias) ...[
                     const SizedBox(height: 24),
                     const Text(
-                      'Evidencias (Fotos, Videos o Audios):',
+                      'Evidencias (Fotos o Videos):',
                       style: TextStyle(
                         fontWeight: FontWeight.bold,
                         color: AppColors.textPrimary,
@@ -361,7 +310,7 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
                                 top: 0,
                                 right: 0,
                                 child: GestureDetector(
-                                  onTap: () => _removeFile(index, isAudio: false),
+                                  onTap: () => _removeFile(index),
                                   child: Container(
                                     decoration: BoxDecoration(
                                       color: Colors.black54,
@@ -389,57 +338,9 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
                           );
                         }),
                         
-                        // Mostrar audios
-                        ...List.generate(_audios.length, (index) {
-                          final file = _audios[index];
-                          return Stack(
-                            children: [
-                              Container(
-                                width: 100,
-                                height: 100,
-                                decoration: BoxDecoration(
-                                  borderRadius: BorderRadius.circular(14),
-                                  color: Colors.grey.shade800,
-                                ),
-                                child: const Icon(
-                                  Icons.audiotrack,
-                                  color: Colors.white70,
-                                  size: 40,
-                                ),
-                              ),
-                              Positioned(
-                                top: 0,
-                                right: 0,
-                                child: GestureDetector(
-                                  onTap: () => _removeFile(index, isAudio: true),
-                                  child: Container(
-                                    decoration: BoxDecoration(
-                                      color: Colors.black54,
-                                      borderRadius: BorderRadius.circular(8),
-                                    ),
-                                    child: Icon(
-                                      Icons.close,
-                                      color: Colors.white,
-                                      size: 20,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                              const Positioned(
-                                bottom: 4,
-                                left: 4,
-                                child: Icon(
-                                  Icons.mic,
-                                  color: Colors.greenAccent,
-                                  size: 20,
-                                ),
-                              ),
-                            ],
-                          );
-                        }),
                         
                         // Botones para agregar más archivos
-                        if ((_evidencias.length + _audios.length) < 5) ...[
+                        if (_evidencias.length < 5) ...[
                           // Botón para imágenes/videos
                           GestureDetector(
                             onTap: _pickMedia,
@@ -458,25 +359,6 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
                               ),
                             ),
                           ),
-                          // Botón para audios
-                          if (showAudioRecorder)
-                            GestureDetector(
-                              onTap: _pickAudio,
-                              child: Container(
-                                width: 100,
-                                height: 100,
-                                decoration: BoxDecoration(
-                                  border: Border.all(color: AppColors.border),
-                                  borderRadius: BorderRadius.circular(14),
-                                  color: Colors.grey.shade800,
-                                ),
-                                child: const Icon(
-                                  Icons.audiotrack,
-                                  size: 40,
-                                  color: AppColors.textSecondary,
-                                ),
-                              ),
-                            ),
                         ],
                       ],
                     ),

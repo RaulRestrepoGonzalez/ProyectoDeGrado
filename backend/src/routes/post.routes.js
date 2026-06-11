@@ -72,6 +72,7 @@ router.post(
 //      MODERACIÓN
 // =======================
 router.post('/:id/bloquear', postController.bloquearPublicacion);
+router.delete('/:id', postController.eliminarPublicacion);
 
 router.post(
   '/:id/denunciar',

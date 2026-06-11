@@ -19,7 +19,7 @@ class AuthRepository {
 
       final token = response.data['token'] as String?;
       final refreshToken = response.data['refreshToken'] as String?;
-      
+
       if (token == null || refreshToken == null) {
         throw Exception('No se recibieron credenciales válidas del servidor');
       }
@@ -65,21 +65,23 @@ class AuthRepository {
   }
 
   String _extractErrorMessage(dynamic error) {
+    print("ERROR COMPLETO: $error");
+
     if (error is DioException) {
+      print("STATUS: ${error.response?.statusCode}");
+      print("DATA: ${error.response?.data}");
+
       if (error.response?.data != null) {
         final data = error.response!.data;
+
         if (data is Map) {
-          // El backend de Node.js retorna un array estructurado así: errors: [{ field: 'password', message: '...' }]
-          if (data.containsKey('errors') && data['errors'] is List && (data['errors'] as List).isNotEmpty) {
-             return data['errors'][0]['message'] ?? 'Error de validación';
-          }
           if (data.containsKey('message')) {
-            return data['message'];
+            return data['message'].toString();
           }
         }
       }
-      return 'Error de red o servidor no disponible.';
     }
+
     return error.toString();
   }
 }

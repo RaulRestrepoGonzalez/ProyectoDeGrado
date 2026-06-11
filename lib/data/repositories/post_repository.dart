@@ -104,6 +104,14 @@ class PostRepository {
     }
   }
 
+  Future<void> deletePost(String postId) async {
+    try {
+      await _dio.delete('/posts/$postId');
+    } catch (e) {
+      throw Exception(_extractErrorMessage(e));
+    }
+  }
+
   String _extractErrorMessage(dynamic error) {
     if (error is DioException) {
       switch (error.type) {
