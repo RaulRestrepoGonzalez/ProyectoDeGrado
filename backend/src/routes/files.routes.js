@@ -4,8 +4,8 @@ const router = express.Router();
 
 // Middleware para obtener GridFS
 const getGridFS = () => {
-  const uploadMiddleware = require('./upload');
-  return uploadMiddleware.gridFSBucket();
+  const uploadMiddleware = require('../middleware/upload');
+  return uploadMiddleware.getGridFSBucket();
 };
 
 // Descargar archivo desde GridFS

@@ -76,33 +76,47 @@ const processUploadedFiles = async (req, res, next) => {
   };
 
   try {
-    // Procesar archivo único
-    if (req.file) {
-      validateFile(req.file);
-      
-      if (gridFSBucket) {
-        // Guardar en GridFS
-        const fileId = new ObjectId();
-        const uploadStream = gridFSBucket.openUploadStream(req.file.originalname, {
-          metadata: {
-            originalname: req.file.originalname,
-            mimetype: req.file.mimetype,
-            size: req.file.size,
-            uploadedAt: new Date(),
-          }
-        });
+    // Si no hay archivos, continuar
+    if (!req.file && (!req.files || req.files.length === 0)) {
+      return next();
+    }
 
-        return new Promise((resolve, reject) => {
+    // Verificar disponibilidad de GridFS
+    const canUseGridFS = gridFSBucket && gridFSBucket.s && gridFSBucket.s.db;
+    
+    if (!canUseGridFS) {
+      console.warn('⚠️  GridFS no disponible, usando almacenamiento local');
+    }
+
+    // Procesar archivo único
+    if (req.file && !req.files) {
+      validateFile(req.file);
+
+      if (canUseGridFS) {
+        // Guardar en GridFS
+        await new Promise((resolve, reject) => {
+          const fileId = new ObjectId();
+          const uploadStream = gridFSBucket.openUploadStream(req.file.originalname, {
+            metadata: {
+              originalname: req.file.originalname,
+              mimetype: req.file.mimetype,
+              size: req.file.size,
+              uploadedAt: new Date(),
+            }
+          });
+
           uploadStream.on('error', reject);
           uploadStream.on('finish', () => {
             req.file.fileId = fileId;
             req.file.url = `${protocol}://${host}/api/files/download/${fileId}`;
             req.file.public_id = fileId.toString();
-            next();
             resolve();
           });
+
           uploadStream.end(req.file.buffer);
         });
+
+        return next();
       } else {
         // Fallback: almacenamiento local
         const uploadPath = path.join(__dirname, '../../uploads');
@@ -119,15 +133,22 @@ const processUploadedFiles = async (req, res, next) => {
         req.file.filename = fileName;
         req.file.url = `${protocol}://${host}/uploads/${fileName}`;
         req.file.public_id = fileName;
-        next();
+
+        return next();
       }
-    } else if (req.files && req.files.length > 0) {
-      // Procesar múltiples archivos
-      if (gridFSBucket) {
+    }
+
+    // Procesar múltiples archivos
+    if (req.files && req.files.length > 0) {
+      if (canUseGridFS) {
         // Guardar todos en GridFS
-        const filePromises = req.files.map((file, index) => {
+        const processedFiles = [];
+
+        for (let index = 0; index < req.files.length; index++) {
+          const file = req.files[index];
           validateFile(file);
-          return new Promise((resolve, reject) => {
+
+          const processedFile = await new Promise((resolve, reject) => {
             const fileId = new ObjectId();
             const uploadStream = gridFSBucket.openUploadStream(file.originalname, {
               metadata: {
@@ -149,18 +170,15 @@ const processUploadedFiles = async (req, res, next) => {
                 order: index,
               });
             });
+
             uploadStream.end(file.buffer);
           });
-        });
 
-        Promise.all(filePromises)
-          .then(processedFiles => {
-            req.files = processedFiles;
-            next();
-          })
-          .catch(error => {
-            throw error;
-          });
+          processedFiles.push(processedFile);
+        }
+
+        req.files = processedFiles;
+        return next();
       } else {
         // Fallback: almacenamiento local
         const uploadPath = path.join(__dirname, '../../uploads');
@@ -186,13 +204,15 @@ const processUploadedFiles = async (req, res, next) => {
             order: index,
           };
         });
-        next();
+
+        return next();
       }
-    } else {
-      next();
     }
+
+    next();
   } catch (error) {
-    res.status(400).json({
+    console.error('❌ Error en processUploadedFiles:', error.message);
+    return res.status(400).json({
       status: 'error',
       message: error.message || 'Error al procesar el archivo subido.',
     });
@@ -203,6 +223,6 @@ module.exports = {
   upload,
   processUploadedFiles,
   initializeGridFS,
-  gridFSBucket: () => gridFSBucket,
+  getGridFSBucket: () => gridFSBucket,
 };
 
