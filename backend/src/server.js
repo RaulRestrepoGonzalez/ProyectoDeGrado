@@ -35,6 +35,10 @@ const PORT = process.env.PORT || 3000;
     try {
       await connectDB();
       console.log('✅ Base de datos conectada');
+      
+      // Inicializar GridFS después de conectar a MongoDB
+      const { initializeGridFS } = require('./middleware/upload');
+      await initializeGridFS();
     } catch (dbError) {
       if (detected.isDevelopment) {
         console.warn('⚠️  Base de datos no disponible, continuando en modo desarrollo');

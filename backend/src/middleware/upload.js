@@ -1,42 +1,44 @@
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
+const { MongoClient, GridFSBucket, ObjectId } = require('mongodb');
 
-// Ensure uploads directory exists (backend/uploads)
-const uploadPath = path.join(__dirname, '../../uploads');
-if (!fs.existsSync(uploadPath)) {
-  fs.mkdirSync(uploadPath, { recursive: true });
+// Configuración con fallback a almacenamiento local
+let gridFSBucket = null;
+let mongoClient = null;
+
+// Inicializar GridFS cuando el servidor inicia
+async function initializeGridFS() {
+  try {
+    const mongoUri = process.env.MONGODB_URI || 'mongodb://localhost:27017/soundupar_db';
+    mongoClient = new MongoClient(mongoUri);
+    await mongoClient.connect();
+    
+    const db = mongoClient.db();
+    gridFSBucket = new GridFSBucket(db);
+    console.log('✅ GridFS inicializado correctamente con MongoDB');
+  } catch (error) {
+    console.warn('⚠️  No se pudo inicializar GridFS. Usando almacenamiento local:', error.message);
+    gridFSBucket = null;
+  }
 }
 
-// Configuración de almacenamiento local
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, uploadPath);
-  },
-  filename: (req, file, cb) => {
-    const timestamp = Date.now();
-    const originalName = file.originalname.split('.')[0].replace(/[^a-zA-Z0-9]/g, '_');
-    const extension = file.originalname.split('.').pop();
-    const uniqueFilename = `${timestamp}_${originalName}.${extension}`;
-    cb(null, uniqueFilename);
-  }
-});
+// Exportar función de inicialización para llamar en server.js
+module.exports.initializeGridFS = initializeGridFS;
 
-// Middleware de upload con configuraciones mejoradas
-const upload = multer({ 
+// Configurar multer con almacenamiento en memoria
+const storage = multer.memoryStorage();
+
+const upload = multer({
   storage: storage,
-  limits: { 
-    fileSize: 100 * 1024 * 1024, // 100 MB para videos más largos
-    files: 10 // Máximo 10 archivos (ajustable)
+  limits: {
+    fileSize: 100 * 1024 * 1024, // 100 MB para videos
+    files: 10
   },
   fileFilter: (req, file, cb) => {
-    // Validar tipos de archivo permitidos
     const allowedTypes = [
-      // Imágenes
       'image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml',
-      // Videos
       'video/mp4', 'video/quicktime', 'video/x-msvideo', 'video/x-matroska', 'video/webm', 'video/3gpp', 'video/mpeg', 'video/x-flv',
-      // Audios
       'audio/mpeg', 'audio/wav', 'audio/aac', 'audio/mp4', 'audio/ogg', 'audio/flac'
     ];
 
@@ -46,27 +48,23 @@ const upload = multer({
     if (allowedTypes.includes(file.mimetype) || allowedExtensions.includes(fileExtension)) {
       cb(null, true);
     } else {
-      cb(new Error(`Tipo de archivo no permitido: ${file.mimetype}. Extensiones permitidas: ${allowedExtensions.join(', ')}`), false);
+      cb(new Error(`Tipo de archivo no permitido: ${file.mimetype}`), false);
     }
   }
 });
 
-// Middleware para procesar metadatos después de la subida
-const processUploadedFiles = (req, res, next) => {
+// Middleware para guardar archivos en GridFS o almacenamiento local
+const processUploadedFiles = async (req, res, next) => {
   const host = req.get('host');
   const protocol = req.headers['x-forwarded-proto'] || req.protocol;
 
   const validateFile = (file) => {
-    if (!file || !file.filename || !file.originalname || !file.path) {
+    if (!file || !file.originalname || !file.buffer) {
       throw new Error('Archivo subido inválido.');
     }
 
-    if (!fs.existsSync(file.path)) {
-      throw new Error('El archivo subido no existe en el servidor.');
-    }
-
     if (file.size === undefined || file.size === null || file.size <= 0) {
-      throw new Error('El archivo subido está vacío o no se ha recibido correctamente.');
+      throw new Error('El archivo subido está vacío.');
     }
 
     const extension = file.originalname.toLowerCase().split('.').pop();
@@ -78,52 +76,133 @@ const processUploadedFiles = (req, res, next) => {
   };
 
   try {
+    // Procesar archivo único
     if (req.file) {
       validateFile(req.file);
-      const filename = req.file.filename;
-      req.file.url = `${protocol}://${host}/uploads/${filename}`;
-    }
+      
+      if (gridFSBucket) {
+        // Guardar en GridFS
+        const fileId = new ObjectId();
+        const uploadStream = gridFSBucket.openUploadStream(req.file.originalname, {
+          metadata: {
+            originalname: req.file.originalname,
+            mimetype: req.file.mimetype,
+            size: req.file.size,
+            uploadedAt: new Date(),
+          }
+        });
 
-    if (req.files && req.files.length > 0) {
-      req.files = req.files.map((file, index) => {
-        validateFile(file);
-
-        const filename = file.filename;
-        const url = `${protocol}://${host}/uploads/${filename}`;
-
-        return {
-          ...file,
-          url,
-          public_id: filename,
-          size: file.size || 0,
-          order: index,
-        };
-      });
-    }
-
-    next();
-  } catch (error) {
-    // Eliminar archivos temporales si hubo un problema de validación
-    if (req.files && Array.isArray(req.files)) {
-      req.files.forEach((file) => {
-        if (file && file.path && fs.existsSync(file.path)) {
-          fs.unlinkSync(file.path);
+        return new Promise((resolve, reject) => {
+          uploadStream.on('error', reject);
+          uploadStream.on('finish', () => {
+            req.file.fileId = fileId;
+            req.file.url = `${protocol}://${host}/api/files/download/${fileId}`;
+            req.file.public_id = fileId.toString();
+            next();
+            resolve();
+          });
+          uploadStream.end(req.file.buffer);
+        });
+      } else {
+        // Fallback: almacenamiento local
+        const uploadPath = path.join(__dirname, '../../uploads');
+        if (!fs.existsSync(uploadPath)) {
+          fs.mkdirSync(uploadPath, { recursive: true });
         }
-      });
-    }
 
-    if (req.file && req.file.path && fs.existsSync(req.file.path)) {
-      fs.unlinkSync(req.file.path);
-    }
+        const timestamp = Date.now();
+        const fileName = `${timestamp}_${req.file.originalname}`;
+        const filePath = path.join(uploadPath, fileName);
 
+        fs.writeFileSync(filePath, req.file.buffer);
+
+        req.file.filename = fileName;
+        req.file.url = `${protocol}://${host}/uploads/${fileName}`;
+        req.file.public_id = fileName;
+        next();
+      }
+    } else if (req.files && req.files.length > 0) {
+      // Procesar múltiples archivos
+      if (gridFSBucket) {
+        // Guardar todos en GridFS
+        const filePromises = req.files.map((file, index) => {
+          validateFile(file);
+          return new Promise((resolve, reject) => {
+            const fileId = new ObjectId();
+            const uploadStream = gridFSBucket.openUploadStream(file.originalname, {
+              metadata: {
+                originalname: file.originalname,
+                mimetype: file.mimetype,
+                size: file.size,
+                uploadedAt: new Date(),
+              }
+            });
+
+            uploadStream.on('error', reject);
+            uploadStream.on('finish', () => {
+              resolve({
+                ...file,
+                fileId: fileId,
+                url: `${protocol}://${host}/api/files/download/${fileId}`,
+                public_id: fileId.toString(),
+                size: file.size,
+                order: index,
+              });
+            });
+            uploadStream.end(file.buffer);
+          });
+        });
+
+        Promise.all(filePromises)
+          .then(processedFiles => {
+            req.files = processedFiles;
+            next();
+          })
+          .catch(error => {
+            throw error;
+          });
+      } else {
+        // Fallback: almacenamiento local
+        const uploadPath = path.join(__dirname, '../../uploads');
+        if (!fs.existsSync(uploadPath)) {
+          fs.mkdirSync(uploadPath, { recursive: true });
+        }
+
+        req.files = req.files.map((file, index) => {
+          validateFile(file);
+
+          const timestamp = Date.now();
+          const fileName = `${timestamp}_${index}_${file.originalname}`;
+          const filePath = path.join(uploadPath, fileName);
+
+          fs.writeFileSync(filePath, file.buffer);
+
+          return {
+            ...file,
+            filename: fileName,
+            url: `${protocol}://${host}/uploads/${fileName}`,
+            public_id: fileName,
+            size: file.size,
+            order: index,
+          };
+        });
+        next();
+      }
+    } else {
+      next();
+    }
+  } catch (error) {
     res.status(400).json({
       status: 'error',
-      message: error.message || 'Error al validar el archivo subido.',
+      message: error.message || 'Error al procesar el archivo subido.',
     });
   }
 };
 
 module.exports = {
   upload,
-  processUploadedFiles
+  processUploadedFiles,
+  initializeGridFS,
+  gridFSBucket: () => gridFSBucket,
 };
+
