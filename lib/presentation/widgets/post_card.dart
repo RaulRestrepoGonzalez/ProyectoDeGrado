@@ -10,8 +10,16 @@ import 'video_player_widget.dart';
 class PostCard extends StatefulWidget {
   final Map<String, dynamic> post;
   final VoidCallback onRefresh;
+  final bool isActive;
+  final bool fullHeight;
 
-  const PostCard({super.key, required this.post, required this.onRefresh});
+  const PostCard({
+    super.key,
+    required this.post,
+    required this.onRefresh,
+    this.isActive = true,
+    this.fullHeight = false,
+  });
 
   @override
   State<PostCard> createState() => _PostCardState();
@@ -151,6 +159,8 @@ class _PostCardState extends State<PostCard> {
     final num? precio = widget.post['precio'];
     final List<dynamic> evidencias = widget.post['evidencias'] ?? [];
     final String tipoEvidencia = widget.post['tipoEvidencia'] ?? 'IMAGEN';
+    final bool hasImage = tipoEvidencia == 'IMAGEN' && evidencias.isNotEmpty;
+    final bool hasVideo = tipoEvidencia == 'VIDEO' && evidencias.isNotEmpty;
     final int? duracionAudio = widget.post['duracionAudio'];
 
     final createdAt = DateTime.tryParse(widget.post['createdAt'] ?? '');
@@ -191,17 +201,16 @@ class _PostCardState extends State<PostCard> {
       }
     }
 
-    final hasImage = evidencias.isNotEmpty && tipoEvidencia == 'IMAGEN';
-    final hasVideo = evidencias.isNotEmpty && tipoEvidencia == 'VIDEO';
+    final bool isFull = widget.fullHeight;
 
     return Container(
-      margin: const EdgeInsets.only(bottom: 24),
-      height:
-          MediaQuery.of(context).size.height *
-          0.65, // Altura fija para feed estilo TikTok/Shorts
+      margin: isFull ? EdgeInsets.zero : const EdgeInsets.only(bottom: 24),
+      height: isFull
+          ? MediaQuery.of(context).size.height
+          : MediaQuery.of(context).size.height * 0.65,
       decoration: BoxDecoration(
         color: Colors.black,
-        borderRadius: BorderRadius.circular(24),
+        borderRadius: BorderRadius.circular(isFull ? 0 : 24),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.3),
@@ -211,11 +220,10 @@ class _PostCardState extends State<PostCard> {
         ],
       ),
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(24),
+        borderRadius: BorderRadius.circular(isFull ? 0 : 24),
         child: Stack(
           fit: StackFit.expand,
           children: [
-            // 1. Background Media (Image, Video, or Audio placeholder)
             if (hasImage)
               Image.network(
                 evidencias.first,
@@ -224,7 +232,11 @@ class _PostCardState extends State<PostCard> {
                     Container(color: Colors.grey.shade900),
               )
             else if (hasVideo)
-              VideoPlayerWidget(url: evidencias.first)
+              VideoPlayerWidget(
+                url: evidencias.first,
+                isThumbnail: !widget.isActive,
+                isActive: widget.isActive,
+              )
             else if (tipoEvidencia == 'AUDIO')
               Container(
                 decoration: BoxDecoration(

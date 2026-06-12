@@ -14,7 +14,9 @@ class FeedScreen extends StatefulWidget {
 
 class _FeedScreenState extends State<FeedScreen> {
   final _repository = PostRepository();
+  final PageController _pageController = PageController();
   List<dynamic> _posts = [];
+  int _activePageIndex = 0;
   bool _isLoading = true;
   String? _error;
 
@@ -22,6 +24,12 @@ class _FeedScreenState extends State<FeedScreen> {
   void initState() {
     super.initState();
     _loadPosts();
+  }
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
   }
 
   Future<void> _loadPosts() async {
@@ -50,9 +58,7 @@ class _FeedScreenState extends State<FeedScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: _buildBody(),
-    );
+    return Scaffold(body: _buildBody());
   }
 
   Widget _buildBody() {
@@ -236,14 +242,14 @@ class _FeedScreenState extends State<FeedScreen> {
               const SizedBox(height: 8),
               Text(
                 '¡Sé el primero en compartir algo!',
-                style: TextStyle(
-                  color: AppColors.textSecondary,
-                  fontSize: 16,
-                ),
+                style: TextStyle(color: AppColors.textSecondary, fontSize: 16),
               ),
               const SizedBox(height: 24),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 24,
+                  vertical: 12,
+                ),
                 decoration: BoxDecoration(
                   color: AppColors.accent.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(20),
@@ -276,14 +282,22 @@ class _FeedScreenState extends State<FeedScreen> {
     return RefreshIndicator(
       onRefresh: _loadPosts,
       color: AppColors.accent,
-      child: ListView.builder(
-        physics: const AlwaysScrollableScrollPhysics(),
-        padding: const EdgeInsets.all(16),
+      child: PageView.builder(
+        controller: _pageController,
+        scrollDirection: Axis.vertical,
+        pageSnapping: true,
         itemCount: _posts.length,
+        onPageChanged: (index) {
+          setState(() {
+            _activePageIndex = index;
+          });
+        },
         itemBuilder: (context, index) {
           return PostCard(
             post: _posts[index],
             onRefresh: _loadPosts,
+            isActive: _activePageIndex == index,
+            fullHeight: true,
           );
         },
       ),

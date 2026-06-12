@@ -5,11 +5,13 @@ import 'package:video_player/video_player.dart';
 class VideoPlayerWidget extends StatefulWidget {
   final String url;
   final bool isThumbnail;
+  final bool isActive;
 
   const VideoPlayerWidget({
     super.key,
     required this.url,
     this.isThumbnail = false,
+    this.isActive = true,
   });
 
   @override
@@ -24,29 +26,18 @@ class _VideoPlayerWidgetState extends State<VideoPlayerWidget> {
   @override
   void initState() {
     super.initState();
+    _initializeController(widget.url);
+  }
 
-    // Corregir localhost para emulador Android
-    String finalUrl = widget.url;
-    if (Platform.isAndroid &&
-        (finalUrl.contains('localhost') || finalUrl.contains('127.0.0.1'))) {
-      finalUrl = finalUrl
-          .replaceAll('localhost', '10.0.2.2')
-          .replaceAll('127.0.0.1', '10.0.2.2');
-    }
-
-    _controller = VideoPlayerController.networkUrl(Uri.parse(finalUrl))
+  void _initializeController(String url) {
+    final controllerUrl = _normalizeUrlForPlatform(url);
+    _controller = VideoPlayerController.networkUrl(Uri.parse(controllerUrl))
       ..initialize()
           .then((_) {
-            if (mounted) {
-              setState(() {});
-              _controller.setLooping(true);
-              if (widget.isThumbnail) {
-                _controller.setVolume(0.0); // Mute for thumbnails
-                _controller.pause();
-              } else {
-                _controller.play(); // Autoplay for inline video playback
-              }
-            }
+            if (!mounted) return;
+            setState(() {});
+            _controller.setLooping(true);
+            _updatePlaybackState();
           })
           .catchError((error) {
             if (mounted) {
@@ -56,6 +47,41 @@ class _VideoPlayerWidgetState extends State<VideoPlayerWidget> {
               });
             }
           });
+  }
+
+  String _normalizeUrlForPlatform(String url) {
+    if (Platform.isAndroid &&
+        (url.contains('localhost') || url.contains('127.0.0.1'))) {
+      return url
+          .replaceAll('localhost', '10.0.2.2')
+          .replaceAll('127.0.0.1', '10.0.2.2');
+    }
+    return url;
+  }
+
+  @override
+  void didUpdateWidget(covariant VideoPlayerWidget oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.url != oldWidget.url) {
+      _controller.pause();
+      _controller.dispose();
+      _initializeController(widget.url);
+    } else if (widget.isActive != oldWidget.isActive ||
+        widget.isThumbnail != oldWidget.isThumbnail) {
+      _updatePlaybackState();
+    }
+  }
+
+  void _updatePlaybackState() {
+    if (!mounted || !_controller.value.isInitialized) return;
+
+    if (widget.isActive && !widget.isThumbnail) {
+      _controller.setVolume(1.0);
+      _controller.play();
+    } else {
+      _controller.pause();
+      _controller.setVolume(0.0);
+    }
   }
 
   @override
