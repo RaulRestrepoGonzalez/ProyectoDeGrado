@@ -41,7 +41,7 @@ const evidenciaSchema = new mongoose.Schema({
     default: null,
   },
   publicId: {
-    type: String, // ID de Cloudinary para gestión
+    type: String, // ID del archivo en GridFS
     required: true,
   },
   orden: {

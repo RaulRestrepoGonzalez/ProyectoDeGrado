@@ -22,7 +22,7 @@ async function testDatabase() {
       contenido: 'Esta es una publicación de prueba para verificar el nuevo modelo',
       tipoPost: 'GENERAL',
       evidencias: [{
-        url: 'https://res.cloudinary.com/demo/image/upload/test.jpg',
+        url: 'http://localhost:3000/api/files/download/507f1f77bcf86cd799439011',
         tipo: 'IMAGEN',
         nombreOriginal: 'test.jpg',
         tamaño: 1024000,
@@ -31,7 +31,7 @@ async function testDatabase() {
           ancho: 800,
           alto: 600
         },
-        publicId: 'test_1234567890',
+        publicId: '507f1f77bcf86cd799439011',
         orden: 0
       }],
       estadisticas: {
