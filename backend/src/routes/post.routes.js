@@ -15,11 +15,19 @@ router.use(authenticate);
 router.get('/feed', postController.obtenerFeed);
 
 const { upload, processUploadedFiles } = require('../middleware/upload');
+// Mapear campos antiguos: si el cliente envía `texto` en lugar de `contenido`
+const mapTextoToContenido = (req, res, next) => {
+  if ((!req.body || !req.body.contenido) && req.body && req.body.texto) {
+    req.body.contenido = req.body.texto;
+  }
+  next();
+};
 
 router.post(
   '/',
   upload.array('evidencias', 5), // Hasta 5 archivos adjuntos
   processUploadedFiles, // Procesar metadatos de archivos
+  mapTextoToContenido,
   [
     body('contenido')
       .notEmpty()
