@@ -11,15 +11,24 @@ let mongoClient = null;
 async function initializeGridFS() {
   try {
     const mongoUri = process.env.MONGODB_URI || 'mongodb://localhost:27017/soundupar_db';
+    console.log('📡 Intentando conectar a MongoDB para GridFS...');
+    console.log('   URI:', mongoUri.substring(0, 50) + '...');
+    
     mongoClient = new MongoClient(mongoUri);
     await mongoClient.connect();
     
     const db = mongoClient.db();
     gridFSBucket = new GridFSBucket(db);
+    
     console.log('✅ GridFS inicializado correctamente con MongoDB');
+    console.log('   Bucket disponible para almacenamiento de archivos');
+    return true;
   } catch (error) {
-    console.warn('⚠️  No se pudo inicializar GridFS. Usando almacenamiento local:', error.message);
+    console.error('❌ Error al inicializar GridFS:', error.message);
+    console.warn('⚠️  ADVERTENCIA: GridFS no disponible. Usando almacenamiento local (efímero en Render)');
     gridFSBucket = null;
+    mongoClient = null;
+    return false;
   }
 }
 
@@ -81,22 +90,28 @@ const processUploadedFiles = async (req, res, next) => {
       return next();
     }
 
-    // Verificar disponibilidad de GridFS
-    const canUseGridFS = gridFSBucket && gridFSBucket.s && gridFSBucket.s.db;
+    // Verificar disponibilidad de GridFS con verificación más robusta
+    const canUseGridFS = gridFSBucket && gridFSBucket.s && gridFSBucket.s.db && mongoClient && mongoClient.topology && mongoClient.topology.isConnected();
+    
+    console.log(`📁 Procesando archivos...`);
+    console.log(`   Archivo(s): ${req.file ? '1' : (req.files ? req.files.length : 0)}`);
+    console.log(`   GridFS disponible: ${canUseGridFS ? '✅ SI' : '❌ NO'}`);
     
     if (!canUseGridFS) {
-      console.warn('⚠️  GridFS no disponible, usando almacenamiento local');
+      console.warn('⚠️  GridFS no disponible en este momento. Usando almacenamiento local.');
     }
 
-    // Procesar archivo único
+    // Procesar archivo único (si existe)
     if (req.file && !req.files) {
       validateFile(req.file);
 
       if (canUseGridFS) {
-        // Guardar en GridFS
+        // Guardar en GridFS (asegurando que el ID usado corresponde al archivo almacenado)
+        const fileId = new ObjectId();
+        console.log(`📤 Subiendo archivo único a GridFS: ${req.file.originalname} (${req.file.size} bytes) con ID provisional ${fileId}`);
+
         await new Promise((resolve, reject) => {
-          const fileId = new ObjectId();
-          const uploadStream = gridFSBucket.openUploadStream(req.file.originalname, {
+          const uploadStream = gridFSBucket.openUploadStreamWithId(fileId, req.file.originalname, {
             metadata: {
               originalname: req.file.originalname,
               mimetype: req.file.mimetype,
@@ -105,11 +120,17 @@ const processUploadedFiles = async (req, res, next) => {
             }
           });
 
-          uploadStream.on('error', reject);
+          uploadStream.on('error', (err) => {
+            console.error('❌ Error en uploadStream:', err.message);
+            reject(err);
+          });
+
           uploadStream.on('finish', () => {
-            req.file.fileId = fileId;
-            req.file.url = `${protocol}://${host}/api/files/download/${fileId}`;
-            req.file.public_id = fileId.toString();
+            // uploadStream.id === fileId
+            console.log(`✅ Archivo guardado en GridFS con ID: ${uploadStream.id}`);
+            req.file.fileId = uploadStream.id;
+            req.file.url = `${protocol}://${host}/api/files/download/${uploadStream.id}`;
+            req.file.public_id = uploadStream.id.toString();
             resolve();
           });
 
@@ -119,6 +140,7 @@ const processUploadedFiles = async (req, res, next) => {
         return next();
       } else {
         // Fallback: almacenamiento local
+        console.log(`💾 Usando almacenamiento local para: ${req.file.originalname}`);
         const uploadPath = path.join(__dirname, '../../uploads');
         if (!fs.existsSync(uploadPath)) {
           fs.mkdirSync(uploadPath, { recursive: true });
@@ -134,12 +156,15 @@ const processUploadedFiles = async (req, res, next) => {
         req.file.url = `${protocol}://${host}/uploads/${fileName}`;
         req.file.public_id = fileName;
 
+        console.warn(`⚠️  ARCHIVO EN ALMACENAMIENTO LOCAL (EFÍMERO): ${fileName}`);
         return next();
       }
     }
 
-    // Procesar múltiples archivos
+    // Procesar múltiples archivos (array)
     if (req.files && req.files.length > 0) {
+      console.log(`📤 Procesando ${req.files.length} archivo(s)...`);
+      
       if (canUseGridFS) {
         // Guardar todos en GridFS
         const processedFiles = [];
@@ -148,9 +173,11 @@ const processUploadedFiles = async (req, res, next) => {
           const file = req.files[index];
           validateFile(file);
 
-          const processedFile = await new Promise((resolve, reject) => {
-            const fileId = new ObjectId();
-            const uploadStream = gridFSBucket.openUploadStream(file.originalname, {
+          const fileId = new ObjectId();
+          console.log(`   [${index + 1}/${req.files.length}] Subiendo: ${file.originalname} (${file.size} bytes) con ID ${fileId}`);
+
+          await new Promise((resolve, reject) => {
+            const uploadStream = gridFSBucket.openUploadStreamWithId(fileId, file.originalname, {
               metadata: {
                 originalname: file.originalname,
                 mimetype: file.mimetype,
@@ -159,28 +186,35 @@ const processUploadedFiles = async (req, res, next) => {
               }
             });
 
-            uploadStream.on('error', reject);
+            uploadStream.on('error', (err) => {
+              console.error(`❌ Error subiendo archivo ${file.originalname}:`, err.message);
+              reject(err);
+            });
+
             uploadStream.on('finish', () => {
-              resolve({
+              console.log(`   ✅ Guardado en GridFS: ${file.originalname} (ID: ${uploadStream.id})`);
+              const processedFile = {
                 ...file,
-                fileId: fileId,
-                url: `${protocol}://${host}/api/files/download/${fileId}`,
-                public_id: fileId.toString(),
+                fileId: uploadStream.id,
+                url: `${protocol}://${host}/api/files/download/${uploadStream.id}`,
+                public_id: uploadStream.id.toString(),
                 size: file.size,
                 order: index,
-              });
+              };
+              processedFiles.push(processedFile);
+              resolve();
             });
 
             uploadStream.end(file.buffer);
           });
-
-          processedFiles.push(processedFile);
         }
 
         req.files = processedFiles;
+        console.log(`✅ Todos los ${processedFiles.length} archivo(s) procesados exitosamente en GridFS`);
         return next();
       } else {
         // Fallback: almacenamiento local
+        console.warn(`💾 Usando almacenamiento local para ${req.files.length} archivo(s)`);
         const uploadPath = path.join(__dirname, '../../uploads');
         if (!fs.existsSync(uploadPath)) {
           fs.mkdirSync(uploadPath, { recursive: true });
@@ -195,6 +229,8 @@ const processUploadedFiles = async (req, res, next) => {
 
           fs.writeFileSync(filePath, file.buffer);
 
+          console.warn(`⚠️  ARCHIVO LOCAL EFÍMERO [${index + 1}]: ${fileName}`);
+
           return {
             ...file,
             filename: fileName,
@@ -205,6 +241,7 @@ const processUploadedFiles = async (req, res, next) => {
           };
         });
 
+        console.warn(`⚠️  ${req.files.length} archivo(s) almacenados localmente. Se perderán en el próximo redeploy de Render.`);
         return next();
       }
     }
@@ -212,6 +249,7 @@ const processUploadedFiles = async (req, res, next) => {
     next();
   } catch (error) {
     console.error('❌ Error en processUploadedFiles:', error.message);
+    console.error('   Stack:', error.stack);
     return res.status(400).json({
       status: 'error',
       message: error.message || 'Error al procesar el archivo subido.',
