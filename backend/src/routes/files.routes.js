@@ -81,3 +81,78 @@ router.get('/download/:fileId', async (req, res) => {
 });
 
 module.exports = router;
+
+// Ruta de compatibilidad para antiguos enlaces `/uploads/...`
+// Busca en GridFS por nombre de archivo o metadata.originalname y lo sirve con soporte Range
+router.get('/uploads/*', async (req, res) => {
+  try {
+    const requested = req.params[0]; // path después de /uploads/
+    if (!requested) return res.status(400).json({ error: 'Nombre de archivo inválido' });
+
+    const gridFSBucket = getGridFS();
+    if (!gridFSBucket) return res.status(500).json({ error: 'GridFS no disponible' });
+
+    const filesColl = gridFSBucket.s.db.collection('fs.files');
+
+    // Buscar coincidencias por filename o metadata.originalname
+    const query = {
+      $or: [
+        { filename: requested },
+        { filename: { $regex: `${requested}$` } },
+        { 'metadata.originalname': requested },
+        { 'metadata.originalname': { $regex: `${requested}$` } },
+      ],
+    };
+
+    const fileDoc = await filesColl.find(query).sort({ uploadDate: -1 }).limit(1).next();
+    if (!fileDoc) return res.status(404).json({ error: 'Archivo no encontrado (compatibilidad uploads)' });
+
+    const fileId = fileDoc._id;
+    // Reusar la lógica de descarga con Range
+    const fileSize = fileDoc.length;
+    const contentType = (fileDoc.metadata && fileDoc.metadata.mimetype) ? fileDoc.metadata.mimetype : 'application/octet-stream';
+
+    const range = req.headers.range;
+    if (range) {
+      const parts = range.replace(/bytes=/, '').split('-');
+      const start = parseInt(parts[0], 10) || 0;
+      const end = parts[1] ? parseInt(parts[1], 10) : fileSize - 1;
+
+      if (start >= fileSize || end >= fileSize) {
+        res.status(416).set('Content-Range', `bytes */${fileSize}`);
+        return res.end();
+      }
+
+      const chunkSize = (end - start) + 1;
+      res.status(206);
+      res.set({
+        'Content-Range': `bytes ${start}-${end}/${fileSize}`,
+        'Accept-Ranges': 'bytes',
+        'Content-Length': chunkSize,
+        'Content-Type': contentType,
+      });
+
+      const downloadStream = gridFSBucket.openDownloadStream(new ObjectId(fileId), { start, end });
+      downloadStream.on('error', (err) => {
+        console.error('Error en descarga parcial GridFS (compat uploads):', err);
+        res.status(500).end();
+      });
+      return downloadStream.pipe(res);
+    }
+
+    res.set({
+      'Content-Type': contentType,
+      'Content-Length': fileSize,
+      'Accept-Ranges': 'bytes',
+    });
+
+    const stream = gridFSBucket.openDownloadStream(new ObjectId(fileId));
+    stream.on('error', (err) => {
+      console.error('Error en descarga GridFS (compat uploads):', err);
+      return res.status(500).json({ error: 'Error al descargar el archivo' });
+    });
+    stream.pipe(res);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
