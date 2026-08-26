@@ -190,15 +190,22 @@ class _PostCardState extends State<PostCard> {
           ? cleanPhone
           : '57$cleanPhone';
 
-      final url = Uri.parse("https://wa.me/$fullPhone");
-      if (await canLaunchUrl(url)) {
-        await launchUrl(url, mode: LaunchMode.externalApplication);
-      } else {
-        if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
+      final message = Uri.encodeComponent(
+        'Hola $authorName, vi tu publicación en SoundUpar y me interesa contratar tus servicios.',
+      );
+      final url = Uri.parse('https://wa.me/$fullPhone?text=$message');
+      if (!mounted) return;
+      final messenger = ScaffoldMessenger.of(context);
+      final canLaunchWhatsApp = await canLaunchUrl(url);
+      if (!mounted) return;
+      if (!canLaunchWhatsApp) {
+        messenger.showSnackBar(
           const SnackBar(content: Text('No se pudo abrir WhatsApp.')),
         );
+        return;
       }
+
+      await launchUrl(url, mode: LaunchMode.externalApplication);
     }
 
     final bool isFull = widget.fullHeight;
@@ -213,7 +220,7 @@ class _PostCardState extends State<PostCard> {
         borderRadius: BorderRadius.circular(isFull ? 0 : 24),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.3),
+            color: Colors.black.withAlpha((0.3 * 255).round()),
             blurRadius: 10,
             offset: const Offset(0, 5),
           ),
@@ -272,7 +279,7 @@ class _PostCardState extends State<PostCard> {
                             vertical: 4,
                           ),
                           decoration: BoxDecoration(
-                            color: Colors.black.withOpacity(0.7),
+                            color: Colors.black.withAlpha((0.7 * 255).round()),
                             borderRadius: BorderRadius.circular(12),
                           ),
                           child: Row(
@@ -329,7 +336,7 @@ class _PostCardState extends State<PostCard> {
                     gradient: LinearGradient(
                       colors: [
                         Colors.transparent,
-                        Colors.black.withOpacity(0.8),
+                        Colors.black.withAlpha((0.8 * 255).round()),
                       ],
                       begin: Alignment.topCenter,
                       end: Alignment.bottomCenter,
@@ -353,8 +360,9 @@ class _PostCardState extends State<PostCard> {
                       InkWell(
                         onTap: () {
                           final autorId = autor['_id'];
-                          if (autorId != null)
+                          if (autorId != null) {
                             context.push('/profile/$autorId');
+                          }
                         },
                         child: const CircleAvatar(
                           radius: 20,
@@ -406,8 +414,8 @@ class _PostCardState extends State<PostCard> {
                       ),
                       decoration: BoxDecoration(
                         color: tipoPost == 'BUSCANDO_PERSONAL'
-                            ? Colors.blue.withOpacity(0.8)
-                            : Colors.amber.withOpacity(0.8),
+                            ? Colors.blue.withAlpha((0.8 * 255).round())
+                            : Colors.amber.withAlpha((0.8 * 255).round()),
                         borderRadius: BorderRadius.circular(4),
                       ),
                       child: Text(

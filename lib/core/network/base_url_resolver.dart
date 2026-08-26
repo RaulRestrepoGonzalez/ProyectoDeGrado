@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 /// Intenta resolver una URL base para el backend probando candidatos
@@ -63,7 +64,7 @@ Future<bool> _testCandidate(Dio dio, String candidate) async {
       }
     }
   } catch (e) {
-    print('Error verificando $candidate: $e');
+    debugPrint('Error verificando $candidate: $e');
   }
 
   return false;

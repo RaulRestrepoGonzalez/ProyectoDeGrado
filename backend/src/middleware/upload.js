@@ -1,7 +1,11 @@
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
+const ffprobeStatic = require('ffprobe-static');
+const ffmpeg = require('fluent-ffmpeg');
 const { MongoClient, GridFSBucket, ObjectId } = require('mongodb');
+
+ffmpeg.setFfprobePath(ffprobeStatic.path);
 
 // Configuración con fallback a almacenamiento local
 let gridFSBucket = null;
@@ -35,14 +39,29 @@ async function initializeGridFS() {
 // Exportar función de inicialización para llamar en server.js
 module.exports.initializeGridFS = initializeGridFS;
 
-// Configurar multer con almacenamiento en memoria
-const storage = multer.memoryStorage();
+// Configurar multer con almacenamiento temporal en disco para archivos pesados
+const tmpUploadDir = path.join(__dirname, '../../tmp');
+if (!fs.existsSync(tmpUploadDir)) {
+  fs.mkdirSync(tmpUploadDir, { recursive: true });
+}
+
+const VIDEO_DURATION_LIMIT_SECONDS = 10 * 60; // 10 minutos
+const MAX_UPLOAD_SIZE_BYTES = 1024 * 1024 * 1024; // 1 GB
+
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => cb(null, tmpUploadDir),
+  filename: (req, file, cb) => {
+    const timestamp = Date.now();
+    const safeName = file.originalname.replace(/[^a-zA-Z0-9._-]/g, '_');
+    cb(null, `${timestamp}_${Math.round(Math.random() * 1e9)}_${safeName}`);
+  },
+});
 
 const upload = multer({
   storage: storage,
   limits: {
-    fileSize: 100 * 1024 * 1024, // 100 MB para videos
-    files: 10
+    fileSize: MAX_UPLOAD_SIZE_BYTES,
+    files: 5,
   },
   fileFilter: (req, file, cb) => {
     const allowedTypes = [
@@ -67,8 +86,44 @@ const processUploadedFiles = async (req, res, next) => {
   const host = req.get('host');
   const protocol = req.headers['x-forwarded-proto'] || req.protocol;
 
-  const validateFile = (file) => {
-    if (!file || !file.originalname || !file.buffer) {
+  const getFileStream = (file) => {
+    if (file.path) {
+      return fs.createReadStream(file.path);
+    }
+    if (file.buffer) {
+      const { Readable } = require('stream');
+      return Readable.from(file.buffer);
+    }
+    throw new Error('No se encontró el contenido del archivo subido.');
+  };
+
+  const cleanupTempFile = (file) => {
+    if (file.path) {
+      fs.unlink(file.path, () => {});
+    }
+  };
+
+  const getVideoDuration = (file) => {
+    return new Promise((resolve, reject) => {
+      const filePath = file.path;
+      if (!filePath) {
+        return resolve(null);
+      }
+
+      ffmpeg.ffprobe(filePath, (err, metadata) => {
+        if (err) {
+          return reject(err);
+        }
+
+        const stream = metadata.streams.find((s) => s.codec_type === 'video');
+        const duration = stream?.duration || metadata.format?.duration || 0;
+        resolve(Number(duration));
+      });
+    });
+  };
+
+  const validateFile = async (file) => {
+    if (!file || !file.originalname || (!file.buffer && !file.path)) {
       throw new Error('Archivo subido inválido.');
     }
 
@@ -81,6 +136,23 @@ const processUploadedFiles = async (req, res, next) => {
 
     if (file.mimetype && file.mimetype.startsWith('video/') && !videoExtensions.includes(extension)) {
       throw new Error(`Formato de video no válido: .${extension}`);
+    }
+
+    const shouldProbeDuration =
+      (file.mimetype && file.mimetype.startsWith('video/')) ||
+      (file.mimetype && file.mimetype.startsWith('audio/'));
+
+    if (shouldProbeDuration) {
+      const duration = await getVideoDuration(file);
+      if (duration !== null && !Number.isNaN(duration)) {
+        file.duration = Math.round(duration);
+      }
+
+      if (file.mimetype.startsWith('video/') && duration > VIDEO_DURATION_LIMIT_SECONDS) {
+        const error = new Error(`El video excede el tiempo máximo de ${VIDEO_DURATION_LIMIT_SECONDS / 60} minutos.`);
+        error.code = 'VIDEO_DURATION_EXCEEDED';
+        throw error;
+      }
     }
   };
 
@@ -96,14 +168,23 @@ const processUploadedFiles = async (req, res, next) => {
     console.log(`📁 Procesando archivos...`);
     console.log(`   Archivo(s): ${req.file ? '1' : (req.files ? req.files.length : 0)}`);
     console.log(`   GridFS disponible: ${canUseGridFS ? '✅ SI' : '❌ NO'}`);
-    
+
+    // Si se requiere almacenamiento en la nube, rechazar si GridFS no está disponible
+    if (!canUseGridFS && process.env.REQUIRE_CLOUD_STORAGE === 'true') {
+      console.error('❌ GridFS no disponible y REQUIRE_CLOUD_STORAGE=true — rechazando subida');
+      return res.status(503).json({
+        status: 'error',
+        message: 'Almacenamiento en la nube no disponible. Reintenta más tarde o contacta al administrador.',
+      });
+    }
+
     if (!canUseGridFS) {
       console.warn('⚠️  GridFS no disponible en este momento. Usando almacenamiento local.');
     }
 
     // Procesar archivo único (si existe)
     if (req.file && !req.files) {
-      validateFile(req.file);
+      await validateFile(req.file);
 
       if (canUseGridFS) {
         // Guardar en GridFS (asegurando que el ID usado corresponde al archivo almacenado)
@@ -131,10 +212,14 @@ const processUploadedFiles = async (req, res, next) => {
             req.file.fileId = uploadStream.id;
             req.file.url = `${protocol}://${host}/api/files/download/${uploadStream.id}`;
             req.file.public_id = uploadStream.id.toString();
+            req.file.size = req.file.size || 0;
+            req.file.duration = req.file.duration || null;
+
+            cleanupTempFile(req.file);
             resolve();
           });
 
-          uploadStream.end(req.file.buffer);
+          getFileStream(req.file).pipe(uploadStream);
         });
 
         return next();
@@ -150,7 +235,12 @@ const processUploadedFiles = async (req, res, next) => {
         const fileName = `${timestamp}_${req.file.originalname}`;
         const filePath = path.join(uploadPath, fileName);
 
-        fs.writeFileSync(filePath, req.file.buffer);
+        if (req.file.path) {
+          fs.copyFileSync(req.file.path, filePath);
+          cleanupTempFile(req.file);
+        } else {
+          fs.writeFileSync(filePath, req.file.buffer);
+        }
 
         req.file.filename = fileName;
         req.file.url = `${protocol}://${host}/uploads/${fileName}`;
@@ -171,7 +261,7 @@ const processUploadedFiles = async (req, res, next) => {
 
         for (let index = 0; index < req.files.length; index++) {
           const file = req.files[index];
-          validateFile(file);
+          await validateFile(file);
 
           const fileId = new ObjectId();
           console.log(`   [${index + 1}/${req.files.length}] Subiendo: ${file.originalname} (${file.size} bytes) con ID ${fileId}`);
@@ -199,13 +289,15 @@ const processUploadedFiles = async (req, res, next) => {
                 url: `${protocol}://${host}/api/files/download/${uploadStream.id}`,
                 public_id: uploadStream.id.toString(),
                 size: file.size,
+                duration: file.duration || null,
                 order: index,
               };
               processedFiles.push(processedFile);
+              cleanupTempFile(file);
               resolve();
             });
 
-            uploadStream.end(file.buffer);
+            getFileStream(file).pipe(uploadStream);
           });
         }
 
@@ -220,27 +312,35 @@ const processUploadedFiles = async (req, res, next) => {
           fs.mkdirSync(uploadPath, { recursive: true });
         }
 
-        req.files = req.files.map((file, index) => {
-          validateFile(file);
+        const processedFiles = [];
+        for (let index = 0; index < req.files.length; index++) {
+          const file = req.files[index];
+          await validateFile(file);
 
           const timestamp = Date.now();
           const fileName = `${timestamp}_${index}_${file.originalname}`;
           const filePath = path.join(uploadPath, fileName);
 
-          fs.writeFileSync(filePath, file.buffer);
+          if (file.path) {
+            fs.copyFileSync(file.path, filePath);
+            fs.unlink(file.path, () => {});
+          } else {
+            fs.writeFileSync(filePath, file.buffer);
+          }
 
           console.warn(`⚠️  ARCHIVO LOCAL EFÍMERO [${index + 1}]: ${fileName}`);
 
-          return {
+          processedFiles.push({
             ...file,
             filename: fileName,
             url: `${protocol}://${host}/uploads/${fileName}`,
             public_id: fileName,
             size: file.size,
             order: index,
-          };
-        });
+          });
+        }
 
+        req.files = processedFiles;
         console.warn(`⚠️  ${req.files.length} archivo(s) almacenados localmente. Se perderán en el próximo redeploy de Render.`);
         return next();
       }

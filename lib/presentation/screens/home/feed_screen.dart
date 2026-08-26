@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 
 import '../../../core/constants/app_colors.dart';
 import '../../../data/repositories/post_repository.dart';
@@ -126,7 +125,7 @@ class _FeedScreenState extends State<FeedScreen> {
                 width: 80,
                 height: 80,
                 decoration: BoxDecoration(
-                  color: AppColors.accent.withOpacity(0.1),
+                  color: AppColors.accent.withAlpha((0.1 * 255).round()),
                   borderRadius: BorderRadius.circular(40),
                 ),
                 child: Icon(
@@ -166,7 +165,7 @@ class _FeedScreenState extends State<FeedScreen> {
                   borderRadius: BorderRadius.circular(25),
                   boxShadow: [
                     BoxShadow(
-                      color: AppColors.accent.withOpacity(0.3),
+                      color: AppColors.accent.withAlpha((0.3 * 255).round()),
                       blurRadius: 12,
                       offset: const Offset(0, 4),
                     ),
@@ -216,8 +215,8 @@ class _FeedScreenState extends State<FeedScreen> {
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
                     colors: [
-                      AppColors.accent.withOpacity(0.1),
-                      AppColors.accentLight.withOpacity(0.05),
+                      AppColors.accent.withAlpha((0.1 * 255).round()),
+                      AppColors.accentLight.withAlpha((0.05 * 255).round()),
                     ],
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
@@ -251,7 +250,7 @@ class _FeedScreenState extends State<FeedScreen> {
                   vertical: 12,
                 ),
                 decoration: BoxDecoration(
-                  color: AppColors.accent.withOpacity(0.1),
+                  color: AppColors.accent.withAlpha((0.1 * 255).round()),
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: Row(

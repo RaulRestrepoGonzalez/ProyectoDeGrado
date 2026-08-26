@@ -52,12 +52,17 @@ class _WalletScreenState extends State<WalletScreen> {
       if (mounted) {
         setState(() {
           _tokens = (data['tokens'] as num?)?.toInt() ?? 0;
-          _publicacionesLibres = (data['publicacionesLibresRestantes'] as num?)?.toInt() ?? 0;
+          _publicacionesLibres =
+              (data['publicacionesLibresRestantes'] as num?)?.toInt() ?? 0;
           _isLoading = false;
         });
       }
     } catch (e) {
-      if (mounted) setState(() { _error = e.toString(); _isLoading = false; });
+      if (mounted)
+        setState(() {
+          _error = e.toString();
+          _isLoading = false;
+        });
     }
   }
 
@@ -78,7 +83,9 @@ class _WalletScreenState extends State<WalletScreen> {
       if (mounted) {
         setState(() {
           _tokens = (newData?['tokens'] as num?)?.toInt() ?? _tokens;
-          _publicacionesLibres = (newData?['publicacionesLibresRestantes'] as num?)?.toInt() ?? _publicacionesLibres;
+          _publicacionesLibres =
+              (newData?['publicacionesLibresRestantes'] as num?)?.toInt() ??
+              _publicacionesLibres;
           _selectedPlan = null;
         });
         ScaffoldMessenger.of(context).showSnackBar(
@@ -91,7 +98,10 @@ class _WalletScreenState extends State<WalletScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red.shade800),
+          SnackBar(
+            content: Text('Error: $e'),
+            backgroundColor: Colors.red.shade800,
+          ),
         );
       }
     } finally {
@@ -102,10 +112,16 @@ class _WalletScreenState extends State<WalletScreen> {
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
-      return const Scaffold(body: Center(child: CircularProgressIndicator(color: AppColors.accent)));
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator(color: AppColors.accent)),
+      );
     }
     if (_error != null) {
-      return Scaffold(body: Center(child: Text(_error!, style: const TextStyle(color: Colors.red))));
+      return Scaffold(
+        body: Center(
+          child: Text(_error!, style: const TextStyle(color: Colors.red)),
+        ),
+      );
     }
 
     return Scaffold(
@@ -129,20 +145,40 @@ class _WalletScreenState extends State<WalletScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text('Balance de Tokens', style: TextStyle(color: Colors.white70, fontSize: 14)),
+                  const Text(
+                    'Balance de Tokens',
+                    style: TextStyle(color: Colors.white70, fontSize: 14),
+                  ),
                   const SizedBox(height: 8),
                   Row(
                     children: [
-                      const Icon(Icons.toll_rounded, color: Colors.white, size: 36),
+                      const Icon(
+                        Icons.toll_rounded,
+                        color: Colors.white,
+                        size: 36,
+                      ),
                       const SizedBox(width: 10),
-                      Text('$_tokens', style: const TextStyle(color: Colors.white, fontSize: 42, fontWeight: FontWeight.bold)),
+                      Text(
+                        '$_tokens',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 42,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
                       const SizedBox(width: 8),
-                      const Text('tokens', style: TextStyle(color: Colors.white70, fontSize: 18)),
+                      const Text(
+                        'tokens',
+                        style: TextStyle(color: Colors.white70, fontSize: 18),
+                      ),
                     ],
                   ),
                   const SizedBox(height: 12),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 6,
+                    ),
                     decoration: BoxDecoration(
                       color: Colors.white12,
                       borderRadius: BorderRadius.circular(20),
@@ -159,9 +195,19 @@ class _WalletScreenState extends State<WalletScreen> {
             ),
 
             const SizedBox(height: 28),
-            const Text('Elige tu Plan', style: TextStyle(color: AppColors.textPrimary, fontSize: 18, fontWeight: FontWeight.bold)),
+            const Text(
+              'Elige tu Plan',
+              style: TextStyle(
+                color: AppColors.textPrimary,
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
             const SizedBox(height: 4),
-            const Text('Los tokens se añaden inmediatamente a tu cartera.', style: TextStyle(color: AppColors.textSecondary, fontSize: 13)),
+            const Text(
+              'Los tokens se añaden inmediatamente a tu cartera.',
+              style: TextStyle(color: AppColors.textSecondary, fontSize: 13),
+            ),
             const SizedBox(height: 16),
 
             // ── Plan Cards ────────────────────────────────────────────────────
@@ -169,13 +215,16 @@ class _WalletScreenState extends State<WalletScreen> {
               final isSelected = _selectedPlan == plan['id'];
               final color = plan['color'] as Color;
               return GestureDetector(
-                onTap: () => setState(() => _selectedPlan = plan['id'] as String),
+                onTap: () =>
+                    setState(() => _selectedPlan = plan['id'] as String),
                 child: AnimatedContainer(
                   duration: const Duration(milliseconds: 200),
                   margin: const EdgeInsets.only(bottom: 14),
                   padding: const EdgeInsets.all(20),
                   decoration: BoxDecoration(
-                    color: isSelected ? color.withOpacity(0.15) : AppColors.surface,
+                    color: isSelected
+                        ? color.withAlpha((0.15 * 255).round())
+                        : AppColors.surface,
                     borderRadius: BorderRadius.circular(16),
                     border: Border.all(
                       color: isSelected ? color : AppColors.border,
@@ -187,27 +236,57 @@ class _WalletScreenState extends State<WalletScreen> {
                       Container(
                         padding: const EdgeInsets.all(10),
                         decoration: BoxDecoration(
-                          color: color.withOpacity(0.15),
+                          color: color.withAlpha((0.15 * 255).round()),
                           shape: BoxShape.circle,
                         ),
-                        child: Icon(plan['icon'] as IconData, color: color, size: 26),
+                        child: Icon(
+                          plan['icon'] as IconData,
+                          color: color,
+                          size: 26,
+                        ),
                       ),
                       const SizedBox(width: 16),
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(plan['nombre'] as String, style: const TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.bold, fontSize: 16)),
+                            Text(
+                              plan['nombre'] as String,
+                              style: const TextStyle(
+                                color: AppColors.textPrimary,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 16,
+                              ),
+                            ),
                             const SizedBox(height: 2),
-                            Text(plan['descripcion'] as String, style: const TextStyle(color: AppColors.textSecondary, fontSize: 13)),
+                            Text(
+                              plan['descripcion'] as String,
+                              style: const TextStyle(
+                                color: AppColors.textSecondary,
+                                fontSize: 13,
+                              ),
+                            ),
                           ],
                         ),
                       ),
                       Column(
                         crossAxisAlignment: CrossAxisAlignment.end,
                         children: [
-                          Text('\$${(plan['precio'] as double).toStringAsFixed(0)} USD', style: TextStyle(color: color, fontSize: 18, fontWeight: FontWeight.bold)),
-                          const Text('/mes', style: TextStyle(color: AppColors.textSecondary, fontSize: 12)),
+                          Text(
+                            '\$${(plan['precio'] as double).toStringAsFixed(0)} USD',
+                            style: TextStyle(
+                              color: color,
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          const Text(
+                            '/mes',
+                            style: TextStyle(
+                              color: AppColors.textSecondary,
+                              fontSize: 12,
+                            ),
+                          ),
                         ],
                       ),
                       if (isSelected) ...[
@@ -233,12 +312,19 @@ class _WalletScreenState extends State<WalletScreen> {
               child: const Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Icon(Icons.info_outline, color: AppColors.textSecondary, size: 18),
+                  Icon(
+                    Icons.info_outline,
+                    color: AppColors.textSecondary,
+                    size: 18,
+                  ),
                   SizedBox(width: 10),
                   Expanded(
                     child: Text(
                       'Los pagos son responsabilidad exclusiva del titular de la cuenta. Esta plataforma actúa únicamente como intermediaria.',
-                      style: TextStyle(color: AppColors.textSecondary, fontSize: 12),
+                      style: TextStyle(
+                        color: AppColors.textSecondary,
+                        fontSize: 12,
+                      ),
                     ),
                   ),
                 ],
@@ -250,19 +336,31 @@ class _WalletScreenState extends State<WalletScreen> {
             ElevatedButton.icon(
               onPressed: _isPurchasing ? null : _confirmPurchase,
               icon: _isPurchasing
-                  ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.white,
+                      ),
+                    )
                   : const Icon(Icons.payment_rounded),
               label: Text(_isPurchasing ? 'Procesando...' : 'Confirmar Pago'),
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.accent,
                 foregroundColor: AppColors.textPrimary,
                 padding: const EdgeInsets.symmetric(vertical: 16),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
+                ),
               ),
             ),
             const SizedBox(height: 8),
             const Center(
-              child: Text('Simulación de pago – sin cobro real por ahora.', style: TextStyle(color: AppColors.textSecondary, fontSize: 11)),
+              child: Text(
+                'Simulación de pago – sin cobro real por ahora.',
+                style: TextStyle(color: AppColors.textSecondary, fontSize: 11),
+              ),
             ),
           ],
         ),

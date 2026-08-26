@@ -2,6 +2,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../core/services/auth_service.dart';
 import '../screens/auth/auth_screen.dart';
+import '../screens/auth/forgot_password_screen.dart';
 import '../screens/home/home_screen.dart';
 import '../screens/home/profile_screen.dart';
 import '../screens/home/edit_profile_screen.dart';
@@ -21,7 +22,8 @@ class AppRouter {
     redirect: (context, state) {
       final loggedIn = _authService.isAuthenticated.value;
       final current = state.uri.path;
-      final goingToAuth = current == '/auth' || current == '/';
+      final goingToAuth =
+          current == '/auth' || current == '/' || current == '/forgot-password';
 
       if (!loggedIn && current == '/home') return '/auth';
       if (loggedIn && goingToAuth) return '/home';
@@ -30,10 +32,23 @@ class AppRouter {
     routes: [
       GoRoute(path: '/', builder: (context, state) => const SplashScreen()),
       GoRoute(path: '/auth', builder: (context, state) => const AuthScreen()),
+      GoRoute(
+        path: '/forgot-password',
+        builder: (context, state) => const ForgotPasswordScreen(),
+      ),
       GoRoute(path: '/home', builder: (context, state) => const HomeScreen()),
-      GoRoute(path: '/edit-profile', builder: (context, state) => const EditProfileScreen()),
-      GoRoute(path: '/wallet', builder: (context, state) => const WalletScreen()),
-      GoRoute(path: '/create-post', builder: (context, state) => const CreatePostScreen()),
+      GoRoute(
+        path: '/edit-profile',
+        builder: (context, state) => const EditProfileScreen(),
+      ),
+      GoRoute(
+        path: '/wallet',
+        builder: (context, state) => const WalletScreen(),
+      ),
+      GoRoute(
+        path: '/create-post',
+        builder: (context, state) => const CreatePostScreen(),
+      ),
       GoRoute(
         path: '/post/:id',
         builder: (context, state) {

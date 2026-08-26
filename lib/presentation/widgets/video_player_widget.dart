@@ -19,14 +19,16 @@ class VideoPlayerWidget extends StatefulWidget {
 }
 
 class _VideoPlayerWidgetState extends State<VideoPlayerWidget> {
-  late VideoPlayerController _controller;
+  VideoPlayerController? _controller;
   bool _isError = false;
   String _errorMessage = '';
 
   @override
   void initState() {
     super.initState();
-    _initializeController(widget.url);
+    if (widget.isActive && !widget.isThumbnail) {
+      _initializeController(widget.url);
+    }
   }
 
   void _initializeController(String url) {
@@ -36,7 +38,7 @@ class _VideoPlayerWidgetState extends State<VideoPlayerWidget> {
           .then((_) {
             if (!mounted) return;
             setState(() {});
-            _controller.setLooping(true);
+            _controller?.setLooping(true);
             _updatePlaybackState();
           })
           .catchError((error) {
@@ -63,41 +65,59 @@ class _VideoPlayerWidgetState extends State<VideoPlayerWidget> {
   void didUpdateWidget(covariant VideoPlayerWidget oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (widget.url != oldWidget.url) {
-      _controller.pause();
-      _controller.dispose();
-      _initializeController(widget.url);
+      _disposeController();
+      if (widget.isActive && !widget.isThumbnail) {
+        _initializeController(widget.url);
+      }
     } else if (widget.isActive != oldWidget.isActive ||
         widget.isThumbnail != oldWidget.isThumbnail) {
-      _updatePlaybackState();
+      if (widget.isActive && !widget.isThumbnail && _controller == null) {
+        _initializeController(widget.url);
+      } else if (!widget.isActive || widget.isThumbnail) {
+        _disposeController();
+      } else {
+        _updatePlaybackState();
+      }
     }
   }
 
   void _updatePlaybackState() {
-    if (!mounted || !_controller.value.isInitialized) return;
+    final controller = _controller;
+    if (!mounted || controller == null || !controller.value.isInitialized)
+      return;
 
     if (widget.isActive && !widget.isThumbnail) {
-      _controller.setVolume(1.0);
-      _controller.play();
+      controller.setVolume(1.0);
+      controller.play();
     } else {
-      _controller.pause();
-      _controller.setVolume(0.0);
+      controller.pause();
+      controller.setVolume(0.0);
     }
+  }
+
+  void _disposeController() {
+    _controller?.pause();
+    _controller?.dispose();
+    _controller = null;
+    if (mounted) setState(() {});
   }
 
   @override
   void dispose() {
-    _controller.dispose();
+    _controller?.dispose();
     super.dispose();
   }
 
   void _togglePlayPause() {
-    if (!mounted || !_controller.value.isInitialized) return;
+    final controller = _controller;
+    if (!mounted || controller == null || !controller.value.isInitialized)
+      return;
 
     setState(() {
-      if (_controller.value.isPlaying) {
-        _controller.pause();
+      if (controller.value.isPlaying) {
+        controller.pause();
       } else {
-        _controller.play();
+        controller.play();
       }
     });
   }
@@ -131,11 +151,16 @@ class _VideoPlayerWidgetState extends State<VideoPlayerWidget> {
       );
     }
 
-    if (!_controller.value.isInitialized) {
+    final controller = _controller;
+    if (controller == null || !controller.value.isInitialized) {
       return Container(
         color: Colors.black,
         child: const Center(
-          child: CircularProgressIndicator(color: Colors.white),
+          child: Icon(
+            Icons.play_circle_outline,
+            color: Colors.white70,
+            size: 64,
+          ),
         ),
       );
     }
@@ -148,12 +173,12 @@ class _VideoPlayerWidgetState extends State<VideoPlayerWidget> {
           FittedBox(
             fit: BoxFit.cover,
             child: SizedBox(
-              width: _controller.value.size.width,
-              height: _controller.value.size.height,
-              child: VideoPlayer(_controller),
+              width: controller.value.size.width,
+              height: controller.value.size.height,
+              child: VideoPlayer(controller),
             ),
           ),
-          if (!_controller.value.isPlaying && !widget.isThumbnail)
+          if (!controller.value.isPlaying && !widget.isThumbnail)
             Container(
               color: Colors.black26,
               child: const Center(

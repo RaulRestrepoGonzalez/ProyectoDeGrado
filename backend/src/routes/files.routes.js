@@ -32,6 +32,7 @@ router.get('/download/:fileId', async (req, res) => {
 
     const fileSize = fileDoc.length;
     const contentType = (fileDoc.metadata && fileDoc.metadata.mimetype) ? fileDoc.metadata.mimetype : 'application/octet-stream';
+    res.set('Cache-Control', 'public, max-age=86400, immutable');
 
     // Soportar solicitudes con Range para reproductores como ExoPlayer
     const range = req.headers.range;
@@ -111,6 +112,7 @@ router.get('/uploads/*', async (req, res) => {
     // Reusar la lógica de descarga con Range
     const fileSize = fileDoc.length;
     const contentType = (fileDoc.metadata && fileDoc.metadata.mimetype) ? fileDoc.metadata.mimetype : 'application/octet-stream';
+    res.set('Cache-Control', 'public, max-age=86400, immutable');
 
     const range = req.headers.range;
     if (range) {

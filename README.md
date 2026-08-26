@@ -198,6 +198,45 @@ soundupar/
 │   │       ├── auth_repository.dart
 │   │       ├── user_repository.dart
 │   │       ├── post_repository.dart
+\n+---
+
+## 🆕 Últimas actualizaciones
+
+- Backend:
+   - Mejoras en el middleware de subidas (`src/middleware/upload.js`): ahora usa almacenamiento temporal en disco para archivos grandes, valida duración de video (límite 10 minutos) y soporta archivos hasta 1 GB.
+   - Integración y respaldo con GridFS (MongoDB). Se añadió inicialización robusta de GridFS y fallback a almacenamiento local cuando GridFS no está disponible.
+   - Descargas con soporte `Range` para streaming y compatibilidad con enlaces antiguos `/uploads/*` (`src/routes/files.routes.js`).
+   - Correcciones y configuración de ESLint para el backend; `npm run lint` funciona con la configuración actual.
+
+- Frontend (Flutter):
+   - Se corrigieron todos los avisos del analizador (`flutter analyze`) — problemas con `BuildContext` en gaps async, uso de `withOpacity` y `debugPrint` fueron solucionados.
+   - Mejoras en resolución dinámica de `BASE_URL` y manejo de salud del backend (`lib/core/network/base_url_resolver.dart`).
+
+- Operaciones recientes:
+   - Commit: "fix(upload): ensure GridFS upload ids match stored files; add Range support on downloads for streaming" (push a `main`).
+
+### Comandos útiles tras las actualizaciones
+
+```bash
+# Backend: instalar dependencias y lintear
+cd backend
+npm install
+npm run lint
+
+# Backend: ejecutar en desarrollo
+npm run dev
+
+# Flutter: verificar y ejecutar
+flutter pub get
+flutter analyze
+flutter run
+
+# Health check (ejemplo)
+curl -i https://proyectodegrado-90yf.onrender.com/health
+```
+
+Si quieres, puedo añadir pasos para probar la subida/streaming de un video de prueba (10 minutos / 1 GB) y un ejemplo cURL para subir archivos multipart.
+
 │   │       └── wallet_repository.dart
 │   ├── presentation/
 │       ├── screens/

@@ -3,6 +3,15 @@ const crypto = require('crypto');
 const jwt = require('jsonwebtoken');
 
 const Usuario = require('../models/Usuario');
+const PasswordRecovery = require('../models/PasswordRecovery');
+const { buildWhatsAppRecoveryUrl } = require('../services/whatsapp.service');
+
+const RECOVERY_EXPIRATION_MINUTES = 10;
+const RECOVERY_MAX_ATTEMPTS = 5;
+
+const normalizePhone = (phone) => String(phone).replace(/[^\d+]/g, '').replace(/^00/, '+');
+
+const generateRecoveryCode = () => crypto.randomInt(100000, 1000000).toString();
 
 const getJwtSecret = () => {
   const secret = process.env.JWT_SECRET;
@@ -14,25 +23,111 @@ const getJwtSecret = () => {
 
 const register = async (req, res, next) => {
   try {
-    const { email, password, nombre, rol } = req.body;
+    const { email, password, nombre, rol, telefono } = req.body;
+    const normalizedEmail = String(email).trim().toLowerCase();
 
-    const existing = await Usuario.findOne({ email }).lean();
+    const existing = await Usuario.findOne({ email: normalizedEmail }).lean();
     if (existing) {
       return res.status(409).json({ message: 'Usuario ya registrado.' });
     }
 
     const hashed = await bcrypt.hash(password, 12);
     const user = await Usuario.create({
-      email,
+      email: normalizedEmail,
       password: hashed,
       nombre: nombre || 'Sin nombre',
       rol: rol || 'artista',
+      telefono: telefono ? normalizePhone(telefono) : null,
     });
 
     return res.status(201).json({
       message: 'Usuario registrado correctamente.',
       user: { id: user._id, email: user.email, rol: user.rol },
     });
+  } catch (error) {
+    next(error);
+  }
+};
+
+const requestPasswordRecovery = async (req, res, next) => {
+  try {
+    const identifier = String(req.body.identifier || req.body.telefono || '').trim();
+    const isEmail = identifier.includes('@');
+    const lookup = isEmail
+      ? { email: identifier.toLowerCase() }
+      : { telefono: normalizePhone(identifier) };
+    const user = await Usuario.findOne(lookup).select('_id telefono').lean();
+
+    if (!user) {
+      return res.status(404).json({ message: 'No encontramos una cuenta con ese correo o WhatsApp.' });
+    }
+
+    if (!user.telefono) {
+      return res.status(409).json({
+        message: 'Esta cuenta no tiene un WhatsApp registrado. Inicia sesión y agrégalo en Editar perfil para poder recuperar tu contraseña.',
+      });
+    }
+
+    const telefono = user.telefono;
+    const code = generateRecoveryCode();
+    const codeHash = crypto.createHash('sha256').update(code).digest('hex');
+    await PasswordRecovery.findOneAndUpdate(
+      { telefono },
+      {
+        telefono,
+        userId: user._id,
+        codeHash,
+        attempts: 0,
+        expiresAt: new Date(Date.now() + RECOVERY_EXPIRATION_MINUTES * 60 * 1000),
+      },
+      { upsert: true, setDefaultsOnInsert: true },
+    );
+    return res.json({
+      message: 'Se abrió WhatsApp con tu código. Cópialo y regresa a la aplicación.',
+      whatsappUrl: buildWhatsAppRecoveryUrl(telefono, code),
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+const resetPassword = async (req, res, next) => {
+  try {
+    const identifier = String(req.body.identifier || req.body.telefono || '').trim();
+    let telefono = identifier;
+    if (identifier.includes('@')) {
+      const user = await Usuario.findOne({ email: identifier.toLowerCase() }).select('telefono').lean();
+      telefono = user?.telefono || '';
+    } else {
+      telefono = normalizePhone(identifier);
+    }
+    const codeHash = crypto.createHash('sha256').update(req.body.codigo).digest('hex');
+    const recovery = await PasswordRecovery.findOne({ telefono });
+
+    if (!recovery || recovery.expiresAt <= new Date() || recovery.attempts >= RECOVERY_MAX_ATTEMPTS) {
+      return res.status(400).json({ message: 'El código es inválido o ha expirado.' });
+    }
+
+    if (recovery.codeHash !== codeHash) {
+      await PasswordRecovery.findByIdAndUpdate(recovery._id, { $inc: { attempts: 1 } });
+      return res.status(400).json({ message: 'El código es inválido o ha expirado.' });
+    }
+
+    const consumedRecovery = await PasswordRecovery.findOneAndDelete({
+      _id: recovery._id,
+      codeHash,
+      attempts: { $lt: RECOVERY_MAX_ATTEMPTS },
+      expiresAt: { $gt: new Date() },
+    });
+
+    if (!consumedRecovery) {
+      return res.status(400).json({ message: 'El código es inválido o ha expirado.' });
+    }
+
+    const password = await bcrypt.hash(req.body.newPassword, 12);
+    await Usuario.findByIdAndUpdate(consumedRecovery.userId, { password, refreshToken: null });
+
+    return res.json({ message: 'Contraseña actualizada correctamente.' });
   } catch (error) {
     next(error);
   }
@@ -78,8 +173,9 @@ const refresh = async (req, res) => {
 const login = async (req, res, next) => {
   try {
     const { email, password } = req.body;
+    const normalizedEmail = String(email).trim().toLowerCase();
 
-    const user = await Usuario.findOne({ email }).select('+password').lean();
+    const user = await Usuario.findOne({ email: normalizedEmail }).select('+password').lean();
     if (!user) {
       return res.status(401).json({ message: 'Credenciales inválidas.' });
     }
@@ -112,4 +208,12 @@ const logout = async (req, res, next) => {
   }
 };
 
-module.exports = { register, login, me, refresh, logout };
+module.exports = {
+  register,
+  login,
+  me,
+  refresh,
+  logout,
+  requestPasswordRecovery,
+  resetPassword,
+};

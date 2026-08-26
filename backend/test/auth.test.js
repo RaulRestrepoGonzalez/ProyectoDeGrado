@@ -28,7 +28,7 @@ describe('Auth integration tests', () => {
       email: testUser.email,
       password: testUser.password,
       nombre: testUser.nombre,
-      rol: 'musico',
+      rol: 'artista',
     });
 
     expect(res.status).toBe(201);

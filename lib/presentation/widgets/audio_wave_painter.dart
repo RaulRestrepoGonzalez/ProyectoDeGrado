@@ -4,7 +4,7 @@ class AudioWavePainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
-      ..color = Colors.white.withOpacity(0.3)
+      ..color = Colors.white.withAlpha((0.3 * 255).round())
       ..strokeWidth = 2.0;
 
     final path = Path();
@@ -17,18 +17,12 @@ class AudioWavePainter extends CustomPainter {
       final x = (width / 5) * i;
       final amplitude = 10.0 + (i * 3.0); // Amplitud variable
       final y1 = centerY - amplitude;
-      final y2 = centerY + amplitude;
 
       if (i == 0) {
         path.moveTo(x, centerY);
       }
-      
-      path.quadraticBezierTo(
-        x + width / 10,
-        y1,
-        x + width / 5,
-        centerY,
-      );
+
+      path.quadraticBezierTo(x + width / 10, y1, x + width / 5, centerY);
     }
 
     canvas.drawPath(path, paint);

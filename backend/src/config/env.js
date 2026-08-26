@@ -1,5 +1,4 @@
 const os = require('os');
-const path = require('path');
 const fs = require('fs');
 
 // Variables obligatorias para producción
@@ -207,6 +206,14 @@ function validateEnv() {
 } else {
     console.warn('⚠️ No se encontró MONGODB_URI');
 }
+
+  // Si se requiere operación sólo en nube, asegurar que MONGODB_URI no apunte a localhost
+  if (process.env.REQUIRE_CLOUD_STORAGE === 'true') {
+    const uri = process.env.MONGODB_URI || '';
+    if (!uri || uri.includes('localhost') || uri.startsWith('mongodb://') && !uri.startsWith('mongodb+srv://')) {
+      throw new Error('REQUIRE_CLOUD_STORAGE=true pero MONGODB_URI parece ser local o no está configurada. Proporcione una URI de MongoDB Atlas accesible.');
+    }
+  }
   
   // Validar variables obligatorias para producción
   if (detected.isProduction) {

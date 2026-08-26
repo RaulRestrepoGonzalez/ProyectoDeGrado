@@ -283,12 +283,6 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
                         // Mostrar imágenes/videos
                         ...List.generate(_evidencias.length, (index) {
                           final file = _evidencias[index];
-                          final isImage =
-                              file.path.toLowerCase().endsWith('.jpg') ||
-                              file.path.toLowerCase().endsWith('.jpeg') ||
-                              file.path.toLowerCase().endsWith('.png') ||
-                              file.path.toLowerCase().endsWith('.gif') ||
-                              file.path.toLowerCase().endsWith('.webp');
                           final isVideo =
                               file.path.toLowerCase().endsWith('.mp4') ||
                               file.path.toLowerCase().endsWith('.mov') ||

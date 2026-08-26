@@ -57,8 +57,103 @@ app.use(xss());
 app.set('trust proxy', 1);
 
 const path = require('path');
-// Servir directorio static de uploads
-app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
+const { getGridFSBucket } = require('./middleware/upload');
+
+// Servir directorio static de uploads local solo si no se requiere almacenamiento cloud
+if (process.env.REQUIRE_CLOUD_STORAGE !== 'true') {
+  app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
+} else {
+  console.log('🔒 REQUIRE_CLOUD_STORAGE=true → deshabilitando acceso a /uploads local');
+}
+
+// Compatibilidad para enlaces antiguos a /uploads/filename
+app.use('/uploads', async (req, res, next) => {
+  if (req.method !== 'GET' && req.method !== 'HEAD') {
+    return next();
+  }
+
+  const requested = decodeURIComponent(req.path).replace(/^\/+/, '');
+  if (!requested) {
+    return res.status(400).json({ error: 'Nombre de archivo inválido' });
+  }
+
+  const gridFSBucket = getGridFSBucket();
+  if (!gridFSBucket) {
+    return res.status(500).json({ error: 'GridFS no disponible' });
+  }
+
+  const filesColl = gridFSBucket.s.db.collection('fs.files');
+  const query = {
+    $or: [
+      { filename: requested },
+      { filename: { $regex: `${requested}$`, $options: 'i' } },
+      { 'metadata.originalname': requested },
+      { 'metadata.originalname': { $regex: `${requested}$`, $options: 'i' } },
+    ],
+  };
+
+  try {
+    const fileDoc = await filesColl.find(query).sort({ uploadDate: -1 }).limit(1).next();
+    if (!fileDoc) {
+      return next();
+    }
+
+    const fileSize = fileDoc.length;
+    const contentType = fileDoc.metadata?.mimetype || 'application/octet-stream';
+    const range = req.headers.range;
+
+    if (range) {
+      const parts = range.replace(/bytes=/, '').split('-');
+      const start = parseInt(parts[0], 10) || 0;
+      const end = parts[1] ? parseInt(parts[1], 10) : fileSize - 1;
+
+      if (start >= fileSize || end >= fileSize) {
+        res.status(416).set('Content-Range', `bytes */${fileSize}`);
+        return res.end();
+      }
+
+      const chunkSize = end - start + 1;
+      res.status(206);
+      res.set({
+        'Content-Range': `bytes ${start}-${end}/${fileSize}`,
+        'Accept-Ranges': 'bytes',
+        'Content-Length': chunkSize,
+        'Content-Type': contentType,
+      });
+
+      if (req.method === 'HEAD') {
+        return res.end();
+      }
+
+      const downloadStream = gridFSBucket.openDownloadStream(fileDoc._id, { start, end });
+      downloadStream.on('error', (err) => {
+        console.error('Error en descarga parcial GridFS (compat uploads):', err);
+        res.status(500).end();
+      });
+      return downloadStream.pipe(res);
+    }
+
+    res.set({
+      'Content-Type': contentType,
+      'Content-Length': fileSize,
+      'Accept-Ranges': 'bytes',
+    });
+
+    if (req.method === 'HEAD') {
+      return res.end();
+    }
+
+    const stream = gridFSBucket.openDownloadStream(fileDoc._id);
+    stream.on('error', (err) => {
+      console.error('Error en descarga GridFS (compat uploads):', err);
+      return res.status(500).json({ error: 'Error al descargar el archivo' });
+    });
+    stream.pipe(res);
+  } catch (error) {
+    console.error('Error en ruta legacy /uploads:', error);
+    return res.status(500).json({ error: error.message });
+  }
+});
 
 if (process.env.NODE_ENV !== 'production') {
   app.use(morgan('dev'));
@@ -78,6 +173,7 @@ app.use('/api', routes);
 // Health endpoint mejorado: verifica estado completo de la aplicación
 app.get('/health', async (req, res) => {
   const mongoose = require('mongoose');
+  const { getGridFSBucket } = require('./middleware/upload');
   const startTime = process.hrtime();
   
   try {
@@ -108,6 +204,16 @@ app.get('/health', async (req, res) => {
       }
     }
 
+    // Estado de GridFS
+    const gridFSBucket = getGridFSBucket();
+    let gridFSStatus = 'unavailable';
+    let gridFSCanUse = false;
+    
+    if (gridFSBucket && gridFSBucket.s && gridFSBucket.s.db) {
+      gridFSStatus = 'available';
+      gridFSCanUse = true;
+    }
+
     // Calcular uptime del servidor
     const uptimeSeconds = process.uptime();
     const uptimeFormatted = formatUptime(uptimeSeconds);
@@ -134,6 +240,11 @@ app.get('/health', async (req, res) => {
         database: mongoDb,
         connected: mongoStatus === 'connected'
       },
+      storage: {
+        gridFS: gridFSStatus,
+        gridFSReady: gridFSCanUse,
+        fallbackStorage: process.env.REQUIRE_CLOUD_STORAGE === 'true' ? 'none (cloud required)' : 'local (ephemeral on Render)'
+      },
       api: {
         endpoints: '/api',
         methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
@@ -153,7 +264,8 @@ app.get('/health', async (req, res) => {
       status: 'error',
       timestamp: new Date().toISOString(),
       error: error.message,
-      database: { status: 'error' }
+      database: { status: 'error' },
+      storage: { gridFS: 'error' }
     });
   }
 });

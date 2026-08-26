@@ -16,7 +16,7 @@ class _SearchScreenState extends State<SearchScreen> {
   final _searchRepo = SearchRepository();
   final _searchController = TextEditingController();
   Timer? _debounce;
-  
+
   bool _isLoading = false;
   String _error = '';
 
@@ -63,7 +63,8 @@ class _SearchScreenState extends State<SearchScreen> {
     } catch (e) {
       if (mounted) {
         setState(() {
-          _error = 'Error al realizar la búsqueda. ${e.toString().replaceAll('Exception: ', '')}';
+          _error =
+              'Error al realizar la búsqueda. ${e.toString().replaceAll('Exception: ', '')}';
           _isLoading = false;
         });
       }
@@ -81,7 +82,7 @@ class _SearchScreenState extends State<SearchScreen> {
             padding: const EdgeInsets.only(top: 8.0),
             child: Container(
               decoration: BoxDecoration(
-                color: AppColors.surface.withOpacity(0.5),
+                color: AppColors.surface.withAlpha((0.5 * 255).round()),
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(color: AppColors.border),
               ),
@@ -92,18 +93,32 @@ class _SearchScreenState extends State<SearchScreen> {
                 decoration: InputDecoration(
                   hintText: 'Buscar músicos, bandas o posts...',
                   border: InputBorder.none,
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                  hintStyle: const TextStyle(color: Colors.white54, fontSize: 14),
-                  prefixIcon: const Icon(Icons.search, color: Colors.white54, size: 20),
-                  suffixIcon: _searchController.text.isNotEmpty 
-                    ? IconButton(
-                        icon: const Icon(Icons.clear, color: Colors.white54, size: 20),
-                        onPressed: () {
-                          _searchController.clear();
-                          _onSearchChanged('');
-                        },
-                      )
-                    : null,
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 12,
+                  ),
+                  hintStyle: const TextStyle(
+                    color: Colors.white54,
+                    fontSize: 14,
+                  ),
+                  prefixIcon: const Icon(
+                    Icons.search,
+                    color: Colors.white54,
+                    size: 20,
+                  ),
+                  suffixIcon: _searchController.text.isNotEmpty
+                      ? IconButton(
+                          icon: const Icon(
+                            Icons.clear,
+                            color: Colors.white54,
+                            size: 20,
+                          ),
+                          onPressed: () {
+                            _searchController.clear();
+                            _onSearchChanged('');
+                          },
+                        )
+                      : null,
                 ),
                 style: const TextStyle(color: Colors.white, fontSize: 15),
               ),
@@ -125,21 +140,33 @@ class _SearchScreenState extends State<SearchScreen> {
         body: _isLoading
             ? const Center(child: CircularProgressIndicator())
             : _error.isNotEmpty
-                ? Center(child: Text(_error, style: const TextStyle(color: Colors.redAccent)))
-                : TabBarView(
-                    children: [
-                      _buildPostsList(_publicaciones),
-                      _buildProfilesList(_perfiles),
-                      _buildPostsList(_convocatorias), // Mismo widget que publicaciones
-                    ],
-                  ),
+            ? Center(
+                child: Text(
+                  _error,
+                  style: const TextStyle(color: Colors.redAccent),
+                ),
+              )
+            : TabBarView(
+                children: [
+                  _buildPostsList(_publicaciones),
+                  _buildProfilesList(_perfiles),
+                  _buildPostsList(
+                    _convocatorias,
+                  ), // Mismo widget que publicaciones
+                ],
+              ),
       ),
     );
   }
 
   Widget _buildPostsList(List<dynamic> posts) {
     if (posts.isEmpty) {
-      return const Center(child: Text('No hay resultados.', style: TextStyle(color: Colors.white54)));
+      return const Center(
+        child: Text(
+          'No hay resultados.',
+          style: TextStyle(color: Colors.white54),
+        ),
+      );
     }
     return ListView.separated(
       padding: const EdgeInsets.symmetric(vertical: 16),
@@ -148,7 +175,9 @@ class _SearchScreenState extends State<SearchScreen> {
       itemBuilder: (context, index) {
         final post = posts[index];
         return SizedBox(
-          height: MediaQuery.of(context).size.height * 0.7, // Altura moderada para lista normal no pantalla completa
+          height:
+              MediaQuery.of(context).size.height *
+              0.7, // Altura moderada para lista normal no pantalla completa
           child: PostCard(
             post: post,
             onRefresh: () {}, // No refresh on search
@@ -160,7 +189,12 @@ class _SearchScreenState extends State<SearchScreen> {
 
   Widget _buildProfilesList(List<dynamic> profiles) {
     if (profiles.isEmpty) {
-      return const Center(child: Text('No hay resultados.', style: TextStyle(color: Colors.white54)));
+      return const Center(
+        child: Text(
+          'No hay resultados.',
+          style: TextStyle(color: Colors.white54),
+        ),
+      );
     }
     return ListView.builder(
       itemCount: profiles.length,

@@ -35,6 +35,7 @@ class AuthRepository {
     required String password,
     required String nombre,
     required String rol,
+    String? telefono,
   }) async {
     try {
       await _dio.post(
@@ -44,6 +45,46 @@ class AuthRepository {
           'password': password,
           'nombre': nombre,
           'rol': rol,
+          if (telefono != null && telefono.isNotEmpty) 'telefono': telefono,
+        },
+      );
+    } catch (e) {
+      throw Exception(_extractErrorMessage(e));
+    }
+  }
+
+  Future<String> requestPasswordRecovery({required String identifier}) async {
+    try {
+      final response = await _dio.post(
+        '/auth/recovery/request',
+        data: {'identifier': identifier},
+        options: Options(
+          connectTimeout: const Duration(seconds: 30),
+          receiveTimeout: const Duration(seconds: 30),
+        ),
+      );
+      final whatsappUrl = response.data['whatsappUrl'] as String?;
+      if (whatsappUrl == null || whatsappUrl.isEmpty) {
+        throw Exception('No se pudo preparar la conversación de WhatsApp.');
+      }
+      return whatsappUrl;
+    } catch (e) {
+      throw Exception(_extractErrorMessage(e));
+    }
+  }
+
+  Future<void> resetPassword({
+    required String identifier,
+    required String codigo,
+    required String newPassword,
+  }) async {
+    try {
+      await _dio.post(
+        '/auth/recovery/reset',
+        data: {
+          'identifier': identifier,
+          'codigo': codigo,
+          'newPassword': newPassword,
         },
       );
     } catch (e) {
@@ -65,12 +106,11 @@ class AuthRepository {
   }
 
   String _extractErrorMessage(dynamic error) {
-    print("ERROR COMPLETO: $error");
-
     if (error is DioException) {
-      print("STATUS: ${error.response?.statusCode}");
-      print("DATA: ${error.response?.data}");
-
+      if (error.type == DioExceptionType.connectionTimeout ||
+          error.type == DioExceptionType.receiveTimeout) {
+        return 'El servidor está tardando en responder. Verifica tu conexión e inténtalo nuevamente.';
+      }
       if (error.response?.data != null) {
         final data = error.response!.data;
 

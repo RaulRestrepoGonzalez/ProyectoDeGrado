@@ -21,7 +21,7 @@ describe('Security checks', () => {
       email: testUser.email,
       password: testUser.password,
       nombre: testUser.nombre,
-      rol: 'musico',
+      rol: 'artista',
     });
   });
 

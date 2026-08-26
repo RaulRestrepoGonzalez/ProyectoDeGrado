@@ -80,6 +80,17 @@ router.post(
 //      MODERACIÓN
 // =======================
 router.post('/:id/bloquear', postController.bloquearPublicacion);
+router.patch(
+  '/:id',
+  [
+    body('contenido').optional().isString().isLength({ max: 1000 }).withMessage('Contenido inválido.'),
+    body('tipoPost').optional().isIn(['BUSCANDO_PERSONAL', 'BUSCANDO_OPORTUNIDAD', 'GENERAL']).withMessage('Tipo de publicación inválido.'),
+    body('vacantes').optional().isInt({ min: 1 }).withMessage('Las vacantes deben ser un número entero positivo.'),
+    body('precio').optional().isFloat({ min: 0 }).withMessage('El precio debe ser un número positivo.'),
+  ],
+  validateRequest,
+  postController.editarPublicacion
+);
 router.delete('/:id', postController.eliminarPublicacion);
 
 router.post(

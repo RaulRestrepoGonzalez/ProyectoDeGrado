@@ -24,7 +24,7 @@ exports.searchAll = async (req, res, next) => {
         { etiquetas: regex }
       ]
     })
-    .populate('autor', 'nombre username avatar rol')
+    .populate('autor', 'nombre username avatar rol telefono')
     .sort({ createdAt: -1 })
     .limit(10);
 
@@ -37,7 +37,7 @@ exports.searchAll = async (req, res, next) => {
         { etiquetas: regex }
       ]
     })
-    .populate('autor', 'nombre username avatar rol')
+    .populate('autor', 'nombre username avatar rol telefono')
     .sort({ createdAt: -1 })
     .limit(10);
 

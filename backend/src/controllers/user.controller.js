@@ -1,4 +1,3 @@
-const mongoose = require('mongoose');
 const Usuario = require('../models/Usuario');
 const Publicacion = require('../models/Publicacion');
 
@@ -22,7 +21,7 @@ exports.obtenerPerfilUsuario = async (req, res, next) => {
       bloqueadaPor: { $ne: currentUserId },
     })
       .sort({ createdAt: -1 })
-      .populate('autor', 'nombre rol fotoPerfil')
+      .populate('autor', 'nombre rol fotoPerfil telefono')
       .lean();
 
     // 2. Pestaña "Me Gusta" (Posts que le gustan al autor del perfil)
@@ -32,7 +31,7 @@ exports.obtenerPerfilUsuario = async (req, res, next) => {
       bloqueadaPor: { $ne: currentUserId },
     })
       .sort({ createdAt: -1 })
-      .populate('autor', 'nombre rol fotoPerfil')
+      .populate('autor', 'nombre rol fotoPerfil telefono')
       .lean();
 
     const formatearPublicacion = (pub) => {
@@ -129,7 +128,7 @@ exports.actualizarPerfilUsuario = async (req, res, next) => {
     const updates = {};
     if (nombre) updates.nombre = nombre;
     if (rol) updates.rol = rol;
-    if (telefono !== undefined) updates.telefono = telefono;
+    if (telefono !== undefined) updates.telefono = String(telefono).replace(/[^\d+]/g, '').replace(/^00/, '+');
 
     // Si Multer capturó una imagen (fotoPerfil)
     if (req.file) {

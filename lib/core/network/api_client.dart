@@ -7,6 +7,8 @@ import '../services/auth_service.dart';
 class ApiClient {
   ApiClient._();
 
+  static Future<String?>? _baseUrlResolution;
+
   static Dio create() {
     String? envBase;
 
@@ -29,7 +31,7 @@ class ApiClient {
 
     // Resolver URL automáticamente si no existe en .env
     if (envBase == null || envBase.isEmpty) {
-      resolveBaseUrl()
+      _resolveBaseUrlOnce()
           .then((resolved) {
             if (resolved != null && resolved.isNotEmpty) {
               dio.options.baseUrl = resolved;
@@ -80,5 +82,10 @@ class ApiClient {
     );
 
     return dio;
+  }
+
+  static Future<String?> _resolveBaseUrlOnce() {
+    _baseUrlResolution ??= resolveBaseUrl();
+    return _baseUrlResolution!;
   }
 }

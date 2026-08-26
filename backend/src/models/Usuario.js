@@ -10,6 +10,8 @@ const usuarioSchema = new mongoose.Schema(
       type: String,
       required: true,
       unique: true,
+      trim: true,
+      lowercase: true,
     },
     password: {
       type: String,
@@ -28,6 +30,7 @@ const usuarioSchema = new mongoose.Schema(
     telefono: {
       type: String,
       default: null,
+      trim: true,
     },
     tokens: {
       type: Number,

@@ -20,7 +20,7 @@ describe('Backend performance & stress tests', () => {
       email: LOGIN_CREDENTIALS.email,
       password: hashed,
       nombre: 'Performance User',
-      rol: 'musico',
+      rol: 'artista',
     });
   });
 

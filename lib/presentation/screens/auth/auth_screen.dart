@@ -22,6 +22,7 @@ class _AuthScreenState extends State<AuthScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _nameController = TextEditingController();
+  final _phoneController = TextEditingController();
 
   String _selectedRole = 'artista';
   bool _acceptedTerms = false;
@@ -33,6 +34,7 @@ class _AuthScreenState extends State<AuthScreen> {
     _emailController.dispose();
     _passwordController.dispose();
     _nameController.dispose();
+    _phoneController.dispose();
     super.dispose();
   }
 
@@ -105,6 +107,7 @@ class _AuthScreenState extends State<AuthScreen> {
           password: _passwordController.text.trim(),
           nombre: _nameController.text.trim(),
           rol: _selectedRole,
+          telefono: _phoneController.text.trim(),
         );
 
         if (!mounted) return;
@@ -218,6 +221,27 @@ class _AuthScreenState extends State<AuthScreen> {
                         return null;
                       },
                     ),
+                    if (!_isLogin) ...[
+                      const SizedBox(height: 12),
+                      TextFormField(
+                        controller: _phoneController,
+                        keyboardType: TextInputType.phone,
+                        decoration: const InputDecoration(
+                          labelText: 'WhatsApp (con código de país)',
+                          hintText: '+573001234567',
+                          prefixIcon: Icon(Icons.phone),
+                        ),
+                        validator: (value) {
+                          if (value == null ||
+                              !RegExp(
+                                r'^\+?[0-9]{7,15}$',
+                              ).hasMatch(value.trim())) {
+                            return 'Usa un teléfono internacional válido';
+                          }
+                          return null;
+                        },
+                      ),
+                    ],
                     const SizedBox(height: 12),
                     TextFormField(
                       controller: _passwordController,
@@ -249,7 +273,7 @@ class _AuthScreenState extends State<AuthScreen> {
                       const SizedBox(height: 16),
                       Container(
                         decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.05),
+                          color: Colors.white.withAlpha((0.05 * 255).round()),
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: CheckboxListTile(
@@ -298,6 +322,16 @@ class _AuthScreenState extends State<AuthScreen> {
                       ),
                     ),
                     const SizedBox(height: 12),
+                    if (_isLogin)
+                      Align(
+                        alignment: Alignment.centerRight,
+                        child: TextButton(
+                          onPressed: _isLoading
+                              ? null
+                              : () => context.push('/forgot-password'),
+                          child: const Text('¿Olvidaste tu contraseña?'),
+                        ),
+                      ),
                     TextButton(
                       onPressed: _isLoading ? null : _toggleMode,
                       child: Text(

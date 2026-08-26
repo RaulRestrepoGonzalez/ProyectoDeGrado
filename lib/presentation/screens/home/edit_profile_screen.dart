@@ -102,7 +102,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     setState(() => _isSaving = true);
 
     try {
-      final updatedUser = await _repository.updateUserProfile(
+      await _repository.updateUserProfile(
         nombre: newName,
         rol: _selectedRole,
         telefono: _phoneController.text.trim(),
@@ -252,10 +252,24 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                     controller: _phoneController,
                     keyboardType: TextInputType.phone,
                     decoration: const InputDecoration(
-                      labelText: 'Teléfono de Contacto (Opcional)',
+                      labelText: 'WhatsApp (con código de país)',
+                      hintText: '+573001234567',
                       prefixIcon: Icon(Icons.phone, color: Colors.white70),
                     ),
+                    onChanged: (_) => setState(() {}),
                   ),
+
+                  if (_phoneController.text.trim().isEmpty)
+                    const Padding(
+                      padding: EdgeInsets.only(top: 8),
+                      child: Align(
+                        alignment: Alignment.centerLeft,
+                        child: Text(
+                          'Registra tu WhatsApp para que puedan contactarte y para recuperar tu contraseña.',
+                          style: TextStyle(color: Colors.amber, fontSize: 12),
+                        ),
+                      ),
+                    ),
 
                   const SizedBox(height: 24),
 

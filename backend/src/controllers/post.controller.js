@@ -12,21 +12,25 @@ exports.crearPublicacion = async (req, res, next) => {
     const { contenido, tipoPost, vacantes, precio } = req.body;
     const userId = req.user.id;
 
-    // ── Token Gate para compañia e independiente ──────────────────────────────
-    const autor = await Usuario.findById(userId).select('rol tokens publicacionesGratuitas');
-    if (autor && ['compañia', 'independiente'].includes(autor.rol)) {
-      if (autor.publicacionesGratuitas < 3) {
-        // Consume una publicación gratuita
-        await Usuario.findByIdAndUpdate(userId, { $inc: { publicacionesGratuitas: 1 } });
-      } else if (autor.tokens <= 0) {
-        // Sin tokens → rechazar con código especial para que Flutter muestre la alerta
-        return res.status(402).json({
-          needsTokens: true,
-          message: 'Has superado las 3 publicaciones gratuitas. Recarga tokens en tu Cartera para seguir publicando.',
-        });
-      } else {
-        // Descontar token
-        await Usuario.findByIdAndUpdate(userId, { $inc: { tokens: -1 } });
+    // ── Token Gate para compañia e independiente
+    // Por defecto las publicaciones son gratuitas. Habilita tokens sólo si
+    // la variable de entorno `ENABLE_PUBLICATION_TOKENS=true` está presente.
+    if (process.env.ENABLE_PUBLICATION_TOKENS === 'true') {
+      const autor = await Usuario.findById(userId).select('rol tokens publicacionesGratuitas');
+      if (autor && ['compañia', 'independiente'].includes(autor.rol)) {
+        if (autor.publicacionesGratuitas < 3) {
+          // Consume una publicación gratuita
+          await Usuario.findByIdAndUpdate(userId, { $inc: { publicacionesGratuitas: 1 } });
+        } else if (autor.tokens <= 0) {
+          // Sin tokens → rechazar con código especial para que Flutter muestre la alerta
+          return res.status(402).json({
+            needsTokens: true,
+            message: 'Has superado las 3 publicaciones gratuitas. Recarga tokens en tu Cartera para seguir publicando.',
+          });
+        } else {
+          // Descontar token
+          await Usuario.findByIdAndUpdate(userId, { $inc: { tokens: -1 } });
+        }
       }
     }
     // ─────────────────────────────────────────────────────────────────────────
@@ -64,7 +68,7 @@ exports.crearPublicacion = async (req, res, next) => {
           nombreOriginal: file.originalname,
           tamaño: file.size || 0,
           formato: fileExtension,
-          duracion: null, // No extraído en local
+          duracion: file.duration != null ? file.duration : null,
           dimensiones: {
             ancho: null,
             alto: null,
@@ -102,7 +106,7 @@ exports.crearPublicacion = async (req, res, next) => {
     await nuevaPublicacion.save();
 
     // ── Poblar datos del autor para respuesta ───────────────────────────────────
-    await nuevaPublicacion.populate('autor', 'nombre username avatar email rol');
+    await nuevaPublicacion.populate('autor', 'nombre username avatar email rol telefono');
 
     res.status(201).json({
       message: 'Publicación creada exitosamente',
@@ -123,23 +127,25 @@ exports.obtenerFeed = async (req, res, next) => {
       bloqueadaPor: { $ne: userId },
     })
       .sort({ createdAt: -1 })
-      .populate('autor', 'nombre rol email')
+      .limit(20)
+      .populate('autor', 'nombre rol email telefono')
       .lean();
 
     // Mapear interacciones para saber si el usuario actual ya dio like o favorito
     const feedFormateado = publicaciones.map((pub) => {
-      const hasLiked = pub.likes.some((id) => id.toString() === userId.toString());
-      const hasFavorited = pub.favoritos.some((id) => id.toString() === userId.toString());
+      const { likes, favoritos, comentarios, ...postData } = pub;
+      const hasLiked = likes.some((id) => id.toString() === userId.toString());
+      const hasFavorited = favoritos.some((id) => id.toString() === userId.toString());
 
       // Simplificar evidencias para el frontend (solo URLs) Pero mantenemos el tipo principal
       const evidenciasUrls = pub.evidencias.map(e => e.url);
 
       return {
-        ...pub,
+        ...postData,
         evidencias: evidenciasUrls,
         tipoEvidencia: pub.tipoEvidenciaPrincipal,
-        likesCount: pub.likes.length,
-        comentariosCount: pub.comentarios.length,
+        likesCount: likes.length,
+        comentariosCount: comentarios.length,
         hasLiked,
         hasFavorited,
       };
@@ -160,7 +166,7 @@ exports.obtenerDetallePublicacion = async (req, res, next) => {
     const userId = req.user.id;
 
     const publicacion = await Publicacion.findById(id)
-      .populate('autor', 'nombre rol')
+      .populate('autor', 'nombre rol telefono')
       .populate({
         path: 'comentarios',
         populate: { path: 'autor', select: 'nombre rol' },
@@ -359,6 +365,38 @@ exports.denunciarPublicacion = async (req, res, next) => {
   }
 };
 
+exports.editarPublicacion = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const userId = req.user.id;
+    const { contenido, tipoPost, vacantes, precio } = req.body;
+
+    const publicacion = await Publicacion.findById(id);
+    if (!publicacion || publicacion.estado !== 'ACTIVA') {
+      return res.status(404).json({ message: 'Publicación no encontrada' });
+    }
+
+    if (publicacion.autor.toString() !== userId.toString()) {
+      return res.status(403).json({ message: 'No tienes permisos para modificar esta publicación.' });
+    }
+
+    if (contenido !== undefined) publicacion.contenido = contenido;
+    if (tipoPost !== undefined) publicacion.tipoPost = tipoPost;
+    if (vacantes !== undefined) publicacion.vacantes = vacantes ? Number(vacantes) : null;
+    if (precio !== undefined) publicacion.precio = precio ? Number(precio) : null;
+
+    await publicacion.save();
+
+    res.status(200).json({
+      status: 'success',
+      message: 'Publicación actualizada exitosamente.',
+      publicacion,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 exports.eliminarPublicacion = async (req, res, next) => {
   try {
     const { id } = req.params;
@@ -400,7 +438,7 @@ exports.buscarPorTipo = async (req, res, next) => {
       bloqueadaPor: { $ne: userId }
     })
     .sort({ createdAt: -1 })
-    .populate('autor', 'nombre rol email')
+    .populate('autor', 'nombre rol email telefono')
     .lean();
 
     const feedFormateado = publicaciones.map(pub => {
@@ -430,7 +468,7 @@ exports.buscarConMultimedia = async (req, res, next) => {
       bloqueadaPor: { $ne: userId }
     })
     .sort({ createdAt: -1 })
-    .populate('autor', 'nombre rol email')
+    .populate('autor', 'nombre rol email telefono')
     .lean();
 
     const feedFormateado = publicaciones.map(pub => {

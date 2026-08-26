@@ -1,0 +1,33 @@
+HTTP/1.1 206 Partial Content
+Date: Tue, 14 Jul 2026 22:10:13 GMT
+Content-Type: image/jpeg
+Content-Length: 2
+Connection: keep-alive
+Accept-Ranges: bytes
+access-control-allow-credentials: true
+content-range: bytes 0-1/9961
+content-security-policy: default-src 'self';script-src 'self';style-src 'self' 'unsafe-inline';img-src 'self' data: blob: http: https:;connect-src 'self';font-src 'self';object-src 'none';upgrade-insecure-requests;base-uri 'self';form-action 'self';frame-ancestors 'self';script-src-attr 'none'
+cross-origin-opener-policy: same-origin
+cross-origin-resource-policy: same-origin
+origin-agent-cluster: ?1
+ratelimit-limit: 200
+ratelimit-policy: 200;w=900
+ratelimit-remaining: 198
+ratelimit-reset: 448
+referrer-policy: strict-origin-when-cross-origin
+rndr-id: 3dfe0e41-c096-44b0
+Server: cloudflare
+strict-transport-security: max-age=15552000; includeSubDomains
+vary: Origin
+x-content-type-options: nosniff
+x-dns-prefetch-control: off
+x-download-options: noopen
+x-frame-options: SAMEORIGIN
+x-permitted-cross-domain-policies: none
+x-render-origin-server: Render
+x-xss-protection: 0
+cf-cache-status: DYNAMIC
+CF-RAY: a1b3db2d1d54148f-BOG
+alt-svc: h3=":443"; ma=86400
+
+ÿ

@@ -19,16 +19,7 @@ class _SplashScreenState extends State<SplashScreen> {
   }
 
   Future<void> _initializeApp() async {
-    final startTime = DateTime.now();
-
-    // Inicializa auth service mientras la UI está corriendo
     await AuthService.instance.init();
-
-    // Aseguramos un mínimo de 2 segundos de pantalla de carga para buena UX
-    final elapsed = DateTime.now().difference(startTime).inMilliseconds;
-    if (elapsed < 2000) {
-      await Future.delayed(Duration(milliseconds: 2000 - elapsed));
-    }
 
     if (!mounted) return;
 
