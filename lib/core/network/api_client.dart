@@ -23,8 +23,8 @@ class ApiClient {
 
     final configuredUrl = envBase?.trim();
     final baseUrl = kReleaseMode
-      ? _productionBaseUrl
-      : (configuredUrl ?? _productionBaseUrl);
+        ? _productionBaseUrl
+        : (configuredUrl ?? _productionBaseUrl);
 
     final dio = Dio(
       BaseOptions(

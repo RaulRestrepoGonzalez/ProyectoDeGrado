@@ -89,7 +89,7 @@ class AuthService {
 
     try {
       final configuredUrl = dotenv.env['BASE_URL']?.trim();
-        final baseUrl = kReleaseMode
+      final baseUrl = kReleaseMode
           ? _productionBaseUrl
           : (configuredUrl ?? 'https://proyectodegrado-90yf.onrender.com/api');
       final dio = Dio(

@@ -193,19 +193,27 @@ class _PostCardState extends State<PostCard> {
       final message = Uri.encodeComponent(
         'Hola $authorName, vi tu publicación en SoundUpar y me interesa contratar tus servicios.',
       );
-      final url = Uri.parse('https://wa.me/$fullPhone?text=$message');
+      final webUrl = Uri.parse('https://wa.me/$fullPhone?text=$message');
+      final whatsappUrl = Uri.parse(
+        'whatsapp://send?phone=$fullPhone&text=$message',
+      );
       if (!mounted) return;
       final messenger = ScaffoldMessenger.of(context);
-      final canLaunchWhatsApp = await canLaunchUrl(url);
-      if (!mounted) return;
-      if (!canLaunchWhatsApp) {
+
+      var opened = await launchUrl(
+        whatsappUrl,
+        mode: LaunchMode.externalApplication,
+      );
+      if (!opened) {
+        opened = await launchUrl(webUrl, mode: LaunchMode.externalApplication);
+      }
+
+      if (!opened) {
+        if (!mounted) return;
         messenger.showSnackBar(
           const SnackBar(content: Text('No se pudo abrir WhatsApp.')),
         );
-        return;
       }
-
-      await launchUrl(url, mode: LaunchMode.externalApplication);
     }
 
     final bool isFull = widget.fullHeight;
