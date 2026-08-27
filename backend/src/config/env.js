@@ -4,6 +4,7 @@ const fs = require('fs');
 // Variables obligatorias para producción
 const productionRequiredEnvVars = [
   'JWT_SECRET',
+  'MONGODB_URI',
 ];
 
 // Variables opcionales con valores por defecto
@@ -13,7 +14,6 @@ const optionalEnvVars = {
   'CLIENT_ORIGIN': '*',
   'SOCKET_PORT': 4000,
   'SOCKET_PATH': '/socket.io',
-  'MONGODB_URI': process.env.MONGODB_URI,
   'ENABLE_HTTPS': 'false',
   'FORCE_INSECURE': 'false',
   'LOG_LEVEL': 'info',
@@ -194,7 +194,7 @@ function validateEnv() {
   
   // Configurar base de datos automáticamente con mejor validación
   const dbUri = getDatabaseConfig();
-  if (!process.env.MONGODB_URI) {
+  if (!process.env.MONGODB_URI && !detected.isProduction) {
     process.env.MONGODB_URI = dbUri;
     console.log(`🗄️  MONGODB_URI configurada automáticamente: ${dbUri}`);
   }

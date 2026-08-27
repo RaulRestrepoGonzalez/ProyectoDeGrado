@@ -95,27 +95,27 @@ echo IP local: %LOCAL_IP%
 echo.
 echo [Paso 4/6] Configurando archivos .env...
 
-if exist "%BACKEND_ENV_FILE%" del "%BACKEND_ENV_FILE%"
-(
-    echo PORT=%BACKEND_PORT%
-    echo NODE_ENV=development
-    echo MONGODB_URI=mongodb://localhost:27017/soundupar_db
-    echo JWT_SECRET=musicapp_secret_%RANDOM%_%TIME:~0,8%
-    echo CLIENT_ORIGIN=*
-    echo SOCKET_PORT=4000
-    echo SOCKET_PATH=/socket.io
-) > "%BACKEND_ENV_FILE%"
+if exist "%BACKEND_ENV_FILE%" (
+    echo OK: Se conserva backend\.env existente, incluida la URI de MongoDB Atlas
+) else (
+    echo ERROR: No existe backend\.env
+    echo Configura MONGODB_URI con tu URI de MongoDB Atlas antes de iniciar.
+    pause
+    exit /b 1
+)
 
-if exist "%ENV_FILE%" del "%ENV_FILE%"
-(
-    echo BASE_URL=http://%LOCAL_IP%:%BACKEND_PORT%/api
-    echo SOCKET_URL=http://%LOCAL_IP%:4000
-    echo BASE_HOSTS=%LOCAL_IP%,localhost,10.0.2.2,10.0.3.2,127.0.0.1
-    echo NETWORK_TIMEOUT=15000
-    echo RETRY_ATTEMPTS=8
-) > "%ENV_FILE%"
-
-echo OK: Archivos .env configurados
+if exist "%ENV_FILE%" (
+    echo OK: Se conserva .env existente del cliente
+) else (
+    (
+        echo BASE_URL=http://%LOCAL_IP%:%BACKEND_PORT%/api
+        echo SOCKET_URL=http://%LOCAL_IP%:4000
+        echo BASE_HOSTS=%LOCAL_IP%,localhost,10.0.2.2,10.0.3.2,127.0.0.1
+        echo NETWORK_TIMEOUT=30000
+        echo RETRY_ATTEMPTS=3
+    ) > "%ENV_FILE%"
+    echo OK: .env del cliente creado
+)
 
 echo.
 echo [Paso 5/6] Iniciando backend...
@@ -146,28 +146,25 @@ echo Iniciando servidor backend...
 start "Backend - SoundUpar" cmd /k "title Backend - SoundUpar && echo ======================================== && echo BACKEND - MUSICAPP VALLEDUPAR && echo ======================================== && npm run dev"
 
 echo Esperando que el backend inicie completamente...
-timeout /t 15
+set BACKEND_READY=0
+for /l %%n in (1,1,30) do (
+    powershell -NoProfile -Command "try { Invoke-WebRequest -Uri 'http://localhost:%BACKEND_PORT%/health' -TimeoutSec 2 -UseBasicParsing | Out-Null; exit 0 } catch { exit 1 }"
+    if not errorlevel 1 (
+        set BACKEND_READY=1
+        goto :backend_ready
+    )
+    echo Esperando backend... intento %%n/30
+    timeout /t 2 /nobreak >nul
+)
 
-echo Verificando que el backend este corriendo...
-netstat -an | findstr ":%BACKEND_PORT%" >nul 2>&1
-if %errorlevel% equ 0 (
-    echo OK: Backend corriendo en puerto %BACKEND_PORT%
-    
-    echo Probando conexion con backend...
-    powershell -Command "try { $response = Invoke-WebRequest -Uri 'http://localhost:%BACKEND_PORT%/health' -TimeoutSec 10 -UseBasicParsing; Write-Host 'OK: Backend responde correctamente' } catch { Write-Host 'ADVERTENCIA: Backend no responde, esperando mas...' }"
-    timeout /t 5
-    
-    echo Verificando nuevamente...
-    powershell -Command "try { $response = Invoke-WebRequest -Uri 'http://localhost:%BACKEND_PORT%/health' -TimeoutSec 5 -UseBasicParsing; Write-Host 'OK: Backend funcionando correctamente' } catch { Write-Host 'INFO: Backend iniciado pero health check no disponible - continuando' }"
+:backend_ready
+if "%BACKEND_READY%"=="1" (
+    echo OK: Backend responde correctamente en /health
 ) else (
-    echo ADVERTENCIA: Backend no se pudo verificar
-    echo Esto puede deberse a:
-    echo - MongoDB no esta completamente listo
-    echo - Errores en el codigo del backend
-    echo - Problemas de red
-    echo.
-    echo Verifica la ventana del backend para ver errores especificos
-    echo Continuando con Flutter de todos modos...
+    echo ERROR: El backend no responde en http://localhost:%BACKEND_PORT%/health
+    echo Revisa la ventana "Backend - SoundUpar" para ver el error de arranque.
+    pause
+    exit /b 1
 )
 
 echo.

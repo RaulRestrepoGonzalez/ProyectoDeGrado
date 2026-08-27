@@ -7,11 +7,13 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 Future<String?> resolveBaseUrl() async {
   final envBase = dotenv.env['BASE_URL'];
 
-  if (envBase != null && envBase.isNotEmpty) {
-    return envBase;
+  final candidates = <String>[];
+
+  if (envBase != null && envBase.trim().isNotEmpty) {
+    candidates.add(envBase.trim().replaceAll(RegExp(r'/+$'), ''));
   }
 
-  final candidates = <String>['https://proyectodegrado-90yf.onrender.com/api'];
+  candidates.add('https://proyectodegrado-90yf.onrender.com/api');
 
   // También probar hosts definidos en .env
   final hostsEnv = dotenv.env['BASE_HOSTS'] ?? dotenv.env['BASE_HOST'];
@@ -23,9 +25,19 @@ Future<String?> resolveBaseUrl() async {
         .where((s) => s.isNotEmpty);
 
     for (final h in hosts) {
-      candidates.add('http://$h:3000/api');
+      final host = h
+          .replaceFirst(RegExp(r'^https?://'), '')
+          .replaceFirst(RegExp(r':\d+$'), '');
+      candidates.add('http://$host:3000/api');
     }
   }
+
+  candidates.addAll(const [
+    'http://10.0.2.2:3000/api',
+    'http://10.0.3.2:3000/api',
+    'http://localhost:3000/api',
+    'http://127.0.0.1:3000/api',
+  ]);
 
   final dio = Dio(
     BaseOptions(
@@ -34,7 +46,7 @@ Future<String?> resolveBaseUrl() async {
     ),
   );
 
-  for (final candidate in candidates) {
+  for (final candidate in candidates.toSet()) {
     final ok = await _testCandidate(dio, candidate);
 
     if (ok) {

@@ -262,8 +262,13 @@ class _AuthScreenState extends State<AuthScreen> {
                         ),
                       ),
                       validator: (value) {
-                        if (value == null || value.length < 6) {
-                          return 'Mínimo 6 caracteres';
+                        if (value == null ||
+                            value.length < 8 ||
+                            !value.contains(RegExp(r'[A-Z]')) ||
+                            !value.contains(RegExp(r'[a-z]')) ||
+                            !value.contains(RegExp(r'[0-9]')) ||
+                            !value.contains(RegExp(r'[^A-Za-z0-9]'))) {
+                          return 'Usa 8 caracteres, mayúscula, minúscula, número y símbolo';
                         }
                         return null;
                       },
