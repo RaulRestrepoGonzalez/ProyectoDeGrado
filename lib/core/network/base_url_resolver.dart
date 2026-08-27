@@ -46,12 +46,16 @@ Future<String?> resolveBaseUrl() async {
     ),
   );
 
-  for (final candidate in candidates.toSet()) {
-    final ok = await _testCandidate(dio, candidate);
+  final uniqueCandidates = candidates.toSet().toList();
+  final results = await Future.wait(
+    uniqueCandidates.map((candidate) async {
+      final ok = await _testCandidate(dio, candidate);
+      return ok ? candidate : null;
+    }),
+  );
 
-    if (ok) {
-      return candidate;
-    }
+  for (final result in results) {
+    if (result != null) return result;
   }
 
   return null;

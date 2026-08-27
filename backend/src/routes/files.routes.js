@@ -33,15 +33,19 @@ router.get('/download/:fileId', async (req, res) => {
     const fileSize = fileDoc.length;
     const contentType = (fileDoc.metadata && fileDoc.metadata.mimetype) ? fileDoc.metadata.mimetype : 'application/octet-stream';
     res.set('Cache-Control', 'public, max-age=86400, immutable');
+    res.set('ETag', `"${fileDoc._id.toString()}-${fileSize}-${fileDoc.uploadDate.getTime()}"`);
+    res.set('Last-Modified', fileDoc.uploadDate.toUTCString());
+    if (req.headers['if-none-match'] === res.get('ETag')) return res.status(304).end();
 
     // Soportar solicitudes con Range para reproductores como ExoPlayer
     const range = req.headers.range;
     if (range) {
       const parts = range.replace(/bytes=/, '').split('-');
       const start = parseInt(parts[0], 10) || 0;
-      const end = parts[1] ? parseInt(parts[1], 10) : fileSize - 1;
+      const requestedEnd = parts[1] ? parseInt(parts[1], 10) : fileSize - 1;
+      const end = Math.min(requestedEnd, fileSize - 1);
 
-      if (start >= fileSize || end >= fileSize) {
+      if (start >= fileSize || end < start) {
         res.status(416).set('Content-Range', `bytes */${fileSize}`);
         return res.end();
       }
@@ -113,6 +117,8 @@ router.get('/uploads/*', async (req, res) => {
     const fileSize = fileDoc.length;
     const contentType = (fileDoc.metadata && fileDoc.metadata.mimetype) ? fileDoc.metadata.mimetype : 'application/octet-stream';
     res.set('Cache-Control', 'public, max-age=86400, immutable');
+    res.set('ETag', `"${fileDoc._id.toString()}-${fileSize}-${fileDoc.uploadDate.getTime()}"`);
+    res.set('Last-Modified', fileDoc.uploadDate.toUTCString());
 
     const range = req.headers.range;
     if (range) {

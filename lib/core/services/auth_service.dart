@@ -1,6 +1,6 @@
 import 'dart:io';
-import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
+import 'package:dio/dio.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:jwt_decoder/jwt_decoder.dart';
@@ -11,6 +11,8 @@ class AuthService {
   AuthService._internal();
 
   static final AuthService instance = AuthService._internal();
+  static const _productionBaseUrl =
+      'https://proyectodegrado-90yf.onrender.com/api';
 
   static const _tokenKey = 'auth_token';
   static const _refreshTokenKey = 'refresh_token';
@@ -86,10 +88,17 @@ class AuthService {
     }
 
     try {
-      final baseUrl =
-          dotenv.env['BASE_URL'] ??
-          'https://proyectodegrado-90yf.onrender.com/api';
-      final dio = Dio(BaseOptions(baseUrl: baseUrl));
+      final configuredUrl = dotenv.env['BASE_URL']?.trim();
+        final baseUrl = kReleaseMode
+          ? _productionBaseUrl
+          : (configuredUrl ?? 'https://proyectodegrado-90yf.onrender.com/api');
+      final dio = Dio(
+        BaseOptions(
+          baseUrl: baseUrl,
+          connectTimeout: const Duration(seconds: 8),
+          receiveTimeout: const Duration(seconds: 8),
+        ),
+      );
       final res = await dio.post(
         '/auth/refresh',
         data: {'refreshToken': refreshToken},

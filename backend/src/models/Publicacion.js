@@ -191,6 +191,7 @@ const publicacionSchema = new mongoose.Schema(
 
 // Índices compuestos para mejor rendimiento
 publicacionSchema.index({ autor: 1, createdAt: -1 });
+publicacionSchema.index({ estado: 1, createdAt: -1, _id: -1 });
 publicacionSchema.index({ tipoPost: 1, estado: 1, createdAt: -1 });
 publicacionSchema.index({ tieneEvidencias: 1, tipoEvidenciaPrincipal: 1 });
 publicacionSchema.index({ etiquetas: 1 });

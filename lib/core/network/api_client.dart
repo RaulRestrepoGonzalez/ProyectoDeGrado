@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'base_url_resolver.dart';
 
@@ -7,6 +8,8 @@ import '../services/auth_service.dart';
 class ApiClient {
   ApiClient._();
 
+  static const _productionBaseUrl =
+      'https://proyectodegrado-90yf.onrender.com/api';
   static Future<String?>? _baseUrlResolution;
 
   static Dio create() {
@@ -18,19 +21,22 @@ class ApiClient {
       envBase = null;
     }
 
-    final baseUrl = envBase ?? 'https://proyectodegrado-90yf.onrender.com/api';
+    final configuredUrl = envBase?.trim();
+    final baseUrl = kReleaseMode
+      ? _productionBaseUrl
+      : (configuredUrl ?? _productionBaseUrl);
 
     final dio = Dio(
       BaseOptions(
         baseUrl: baseUrl,
-        connectTimeout: const Duration(seconds: 30),
-        receiveTimeout: const Duration(seconds: 30),
+        connectTimeout: const Duration(seconds: 8),
+        receiveTimeout: const Duration(seconds: 15),
         headers: {'Content-Type': 'application/json'},
       ),
     );
 
     // Resolver URL automáticamente si no existe en .env
-    if (envBase == null || envBase.isEmpty) {
+    if (!kReleaseMode && (configuredUrl == null || configuredUrl.isEmpty)) {
       _resolveBaseUrlOnce()
           .then((resolved) {
             if (resolved != null && resolved.isNotEmpty) {
@@ -61,7 +67,7 @@ class ApiClient {
               e.type == DioExceptionType.connectionTimeout ||
               e.type == DioExceptionType.unknown;
 
-          if (isNetworkError) {
+          if (isNetworkError && !kReleaseMode) {
             try {
               final resolved = await resolveBaseUrl();
 

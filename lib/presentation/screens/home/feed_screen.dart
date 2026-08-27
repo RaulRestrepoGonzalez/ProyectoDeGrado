@@ -32,10 +32,13 @@ class _FeedScreenState extends State<FeedScreen> {
   }
 
   Future<void> _loadPosts() async {
-    setState(() {
-      _isLoading = true;
-      _error = null;
-    });
+    final hasPosts = _posts.isNotEmpty;
+    if (mounted) {
+      setState(() {
+        _isLoading = !hasPosts;
+        _error = null;
+      });
+    }
 
     try {
       final posts = await _repository.getFeed();
@@ -43,12 +46,14 @@ class _FeedScreenState extends State<FeedScreen> {
         setState(() {
           _posts = posts;
           _isLoading = false;
+          _activePageIndex = 0;
         });
       }
     } catch (e) {
       if (mounted) {
+        final message = e.toString().replaceAll('Exception: ', '');
         setState(() {
-          _error = e.toString().replaceAll('Exception: ', '');
+          _error = message;
           _isLoading = false;
         });
       }

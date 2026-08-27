@@ -108,7 +108,9 @@ class AuthRepository {
   String _extractErrorMessage(dynamic error) {
     if (error is DioException) {
       if (error.type == DioExceptionType.connectionTimeout ||
-          error.type == DioExceptionType.receiveTimeout) {
+          error.type == DioExceptionType.receiveTimeout ||
+          error.type == DioExceptionType.connectionError ||
+          error.type == DioExceptionType.unknown) {
         return 'El servidor está tardando en responder. Verifica tu conexión e inténtalo nuevamente.';
       }
       if (error.response?.data != null) {

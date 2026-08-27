@@ -83,8 +83,9 @@ class _VideoPlayerWidgetState extends State<VideoPlayerWidget> {
 
   void _updatePlaybackState() {
     final controller = _controller;
-    if (!mounted || controller == null || !controller.value.isInitialized)
+    if (!mounted || controller == null || !controller.value.isInitialized) {
       return;
+    }
 
     if (widget.isActive && !widget.isThumbnail) {
       controller.setVolume(1.0);
@@ -110,8 +111,9 @@ class _VideoPlayerWidgetState extends State<VideoPlayerWidget> {
 
   void _togglePlayPause() {
     final controller = _controller;
-    if (!mounted || controller == null || !controller.value.isInitialized)
+    if (!mounted || controller == null || !controller.value.isInitialized) {
       return;
+    }
 
     setState(() {
       if (controller.value.isPlaying) {
